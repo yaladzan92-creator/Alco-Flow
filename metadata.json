@@ -1,6 +1,6 @@
 {
   "name": "ALCO Flow",
-  "description": "Aplikasi workflow dan sistem panduan operasional langkah demi langkah ALCO Flow.",
+  "description": "Panduan interaktif langkah demi langkah untuk menyiapkan tools digital marketing sampai siap digunakan.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

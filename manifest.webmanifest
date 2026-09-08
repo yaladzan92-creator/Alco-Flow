@@ -1,7 +1,7 @@
 {
   "name": "ALCO Flow",
   "short_name": "ALCO Flow",
-  "description": "Framework kerja dan sistem panduan operasional workflow ALCO Flow.",
+  "description": "Panduan interaktif langkah demi langkah untuk menyiapkan tools digital marketing sampai siap digunakan.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,13 +10,13 @@
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "./Alco_logo.png",
-      "sizes": "512x512",
+      "src": "./icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./Alco_logo.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
