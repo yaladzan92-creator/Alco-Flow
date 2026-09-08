@@ -1,7 +1,6 @@
-const CACHE_NAME = "aladzan-corpora-v5";
+const CACHE_NAME = "alco-flow-v1";
 const APP_ASSETS = [
   "./",
-  "./login.html",
   "./index.html",
   "./manifest.webmanifest",
   "./Alco_logo.png",
@@ -40,7 +39,6 @@ self.addEventListener("fetch", (event) => {
   const isHtmlRequest =
     event.request.mode === "navigate" ||
     requestUrl.pathname.endsWith("/index.html") ||
-    requestUrl.pathname.endsWith("/login.html") ||
     (event.request.headers.get("accept") || "").includes("text/html");
 
   if (isHtmlRequest) {
@@ -52,7 +50,7 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(() => caches.match(event.request))
-        .then((response) => response || caches.match("./login.html"))
+        .then((response) => response || caches.match("./index.html"))
     );
     return;
   }
@@ -68,9 +66,6 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(() => {
-          if (event.request.mode === "navigate") {
-            return caches.match("./login.html");
-          }
           return caches.match("./index.html");
         });
     })

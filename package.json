@@ -1,0 +1,14 @@
+{
+  "name": "alco-flow",
+  "version": "1.0.0",
+  "description": "Framework kerja dan sistem panduan operasional standar digital Aladzan Corpora.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'Static build ready'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

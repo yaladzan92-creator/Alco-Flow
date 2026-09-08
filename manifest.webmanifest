@@ -1,8 +1,8 @@
 {
-  "name": "Aladzan Corpora",
-  "short_name": "Aladzan",
-  "description": "Framework kerja dan sistem panduan digital Aladzan Corpora.",
-  "start_url": "./login.html",
+  "name": "ALCO Flow",
+  "short_name": "ALCO Flow",
+  "description": "Framework kerja dan sistem panduan operasional workflow ALCO Flow.",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

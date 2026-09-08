@@ -1,0 +1,8 @@
+{
+  "name": "ALCO Flow",
+  "description": "Aplikasi workflow dan sistem panduan operasional langkah demi langkah ALCO Flow.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
