@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk ke Sistem - Aladzan Corpora</title>
+  <meta name="theme-color" content="#b45309">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Aladzan Corpora">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="Alco_logo.png">
+  <link rel="apple-touch-icon" href="Alco_logo.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    :root {
+      --bg-1: #fff9ed;
+      --bg-2: #fde7cf;
+      --bg-3: #f3efe7;
+      --card: rgba(255, 251, 245, 0.92);
+      --line: rgba(120, 113, 108, 0.18);
+      --text: #1f2937;
+      --muted: #57534e;
+      --accent: #b45309;
+      --accent-2: #1d4ed8;
+      --success: #166534;
+      --danger: #b91c1c;
+      --shadow: 0 30px 70px rgba(68, 47, 19, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(30, 64, 175, 0.12), transparent 28%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: auto -5% 2% auto;
+      width: 360px;
+      height: 360px;
+      background: url("Alco_logo.png") no-repeat center;
+      background-size: contain;
+      opacity: 0.06;
+      transform: rotate(-8deg);
+      pointer-events: none;
+    }
+
+    .login-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: min(1180px, 100%);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      overflow: visible;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .login-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+    }
+
+    .story-panel {
+      padding: 42px;
+      background:
+        linear-gradient(180deg, rgba(255, 251, 245, 0.9), rgba(255, 245, 230, 0.88)),
+        linear-gradient(135deg, rgba(180, 83, 9, 0.08), rgba(29, 78, 216, 0.04));
+      border-right: 1px solid var(--line);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(180, 83, 9, 0.14);
+      box-shadow: 0 16px 32px rgba(180, 83, 9, 0.08);
+      margin-bottom: 26px;
+    }
+
+    .brand-logo {
+      width: 62px;
+      height: 62px;
+      object-fit: contain;
+      border-radius: 18px;
+      padding: 8px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(254,243,199,0.7));
+    }
+
+    .brand-title {
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-sub {
+      font-family: "Segoe UI", sans-serif;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .hero-title {
+      font-size: clamp(38px, 5vw, 60px);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+      margin-bottom: 18px;
+      max-width: 720px;
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.8;
+      margin-bottom: 26px;
+    }
+
+    .bullet-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .bullet-card,
+    .filter-card,
+    .quote-card,
+    .reminder-card {
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 14px 30px rgba(120, 53, 15, 0.06);
+    }
+
+    .bullet-card {
+      padding: 18px 18px 16px;
+    }
+
+    .bullet-icon {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      background: rgba(22, 101, 52, 0.1);
+      color: var(--success);
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+    }
+
+    .bullet-title,
+    .section-title {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .bullet-copy,
+    .section-copy,
+    .filter-list,
+    .quote-copy,
+    .form-sub,
+    .form-note,
+    .login-microcopy,
+    .helper-text {
+      font-family: "Segoe UI", sans-serif;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .filter-card,
+    .quote-card,
+    .reminder-card {
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .filter-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 14px;
+    }
+
+    .filter-list li + li {
+      margin-top: 6px;
+    }
+
+    .quote-card {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .quote-card::before {
+      content: "“";
+      position: absolute;
+      left: 14px;
+      top: 10px;
+      font-size: 46px;
+      line-height: 1;
+      color: rgba(180, 83, 9, 0.24);
+    }
+
+    .quote-copy {
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .reminder-card {
+      background: linear-gradient(135deg, rgba(180, 83, 9, 0.08), rgba(255,255,255,0.72));
+    }
+
+    .reminder-text {
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .form-panel {
+      padding: 42px 34px;
+      display: flex;
+      align-items: flex-start;
+      background: rgba(255,255,255,0.74);
+    }
+
+    .login-focus-card {
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(180, 83, 9, 0.14);
+      background: linear-gradient(135deg, rgba(255,255,255,0.94), rgba(254,243,199,0.58));
+      box-shadow: 0 14px 28px rgba(68, 47, 19, 0.08);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .login-focus-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .login-focus-copy {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .form-inner {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .floating-toast-wrap {
+      position: fixed;
+      top: 22px;
+      right: 22px;
+      z-index: 1200;
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .floating-toast {
+      min-width: min(360px, calc(100vw - 32px));
+      max-width: 420px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(120, 113, 108, 0.16);
+      background: rgba(255, 252, 248, 0.96);
+      box-shadow: 0 18px 36px rgba(68, 47, 19, 0.18);
+      font-family: "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(-10px);
+      animation: toast-in 0.22s ease forwards;
+    }
+
+    .floating-toast.success {
+      border-color: rgba(22, 101, 52, 0.16);
+      background: rgba(240, 253, 244, 0.96);
+    }
+
+    .floating-toast.error {
+      border-color: rgba(185, 28, 28, 0.16);
+      background: rgba(254, 242, 242, 0.97);
+    }
+
+    .toast-title {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .form-title {
+      font-size: 34px;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+    }
+
+    .form-sub {
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .form-label {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #78716c;
+      margin-bottom: 8px;
+    }
+
+    .form-control {
+      border-radius: 18px;
+      border: 1px solid rgba(120, 113, 108, 0.22);
+      padding: 14px 16px;
+      font-family: "Segoe UI", sans-serif;
+      box-shadow: none;
+      background: rgba(255,255,255,0.9);
+    }
+
+    .form-control:focus {
+      border-color: rgba(180, 83, 9, 0.45);
+      box-shadow: 0 0 0 0.24rem rgba(180, 83, 9, 0.14);
+    }
+
+    .helper-text {
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .btn-login,
+    .btn-request {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-login {
+      color: #fff;
+      background: linear-gradient(135deg, #b45309, #ea580c);
+      box-shadow: 0 18px 32px rgba(180, 83, 9, 0.24);
+    }
+
+    .btn-request {
+      color: #1e3a8a;
+      background: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(239, 246, 255, 0.96));
+      border: 1px solid rgba(29, 78, 216, 0.16);
+      margin-top: 12px;
+    }
+
+    .btn-login:hover,
+    .btn-request:hover {
+      transform: translateY(-1px);
+      opacity: 0.98;
+    }
+
+    .status-text {
+      min-height: 24px;
+      margin-top: 14px;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: var(--success);
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .login-microcopy {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 14px;
+    }
+
+    .alt-access-box {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(120, 113, 108, 0.14);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .alt-access-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .alt-access-copy {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0 0 10px;
+    }
+
+    .form-note {
+      margin-top: 18px;
+      font-size: 12px;
+    }
+
+    .forgot-btn {
+      color: var(--accent-2);
+      text-decoration: none;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .forgot-btn:hover {
+      color: #1e40af;
+    }
+
+    .request-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(8px);
+      z-index: 1250;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+    }
+
+    .request-overlay.active {
+      display: flex;
+    }
+
+    .request-modal {
+      width: min(540px, 100%);
+      max-height: min(92vh, 880px);
+      border-radius: 28px;
+      background: rgba(255, 251, 245, 0.98);
+      border: 1px solid rgba(120, 113, 108, 0.16);
+      box-shadow: 0 28px 64px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .request-head,
+    .request-body {
+      padding: 22px;
+    }
+
+    .request-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(120, 113, 108, 0.12);
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.46), rgba(219, 234, 254, 0.42));
+      flex: 0 0 auto;
+    }
+
+    .request-body {
+      overflow-y: auto;
+      flex: 1 1 auto;
+    }
+
+    .request-step {
+      display: none;
+    }
+
+    .request-step.active {
+      display: block;
+    }
+
+    .price-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.94), rgba(254,243,199,0.72));
+      border: 1px solid rgba(180, 83, 9, 0.14);
+      margin-bottom: 16px;
+    }
+
+    .price-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .price-value {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.04em;
+    }
+
+    .price-meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .request-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .request-actions .btn {
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-weight: 700;
+    }
+
+    .request-summary {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(120, 113, 108, 0.14);
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .request-status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .request-status.error {
+      color: var(--danger);
+    }
+
+    .value-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .payment-box,
+    .discount-box {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(120, 113, 108, 0.14);
+      margin-bottom: 16px;
+    }
+
+    .payment-title,
+    .discount-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #111827;
+      margin-bottom: 10px;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .payment-method {
+      padding: 10px 0;
+      border-top: 1px dashed rgba(120, 113, 108, 0.18);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .payment-method:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .access-cta-btn {
+      width: 100%;
+      margin-top: 12px;
+      border-radius: 16px;
+      font-weight: 700;
+    }
+
+    .mobile-login-fab {
+      position: fixed;
+      right: 16px;
+      bottom: 18px;
+      z-index: 1190;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 999px;
+      color: #fff;
+      background: linear-gradient(135deg, #b45309, #ea580c);
+      box-shadow: 0 20px 36px rgba(180, 83, 9, 0.28);
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+    }
+
+    @keyframes toast-in {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (min-width: 992px) {
+      .login-shell {
+        padding: 28px 24px 40px;
+      }
+
+      .form-inner {
+        position: sticky;
+        top: 24px;
+      }
+    }
+
+    @media (max-width: 991px) {
+      .login-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .story-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .bullet-grid,
+      .filter-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 575px) {
+      .login-shell {
+        padding: 14px;
+      }
+
+      .floating-toast-wrap {
+        top: auto;
+        right: 14px;
+        left: 14px;
+        bottom: 14px;
+      }
+
+      .floating-toast {
+        min-width: auto;
+        max-width: none;
+      }
+
+      .request-overlay {
+        align-items: flex-end;
+        padding: 12px;
+      }
+
+      .request-modal {
+        border-radius: 24px 24px 0 0;
+      }
+
+      .mobile-login-fab {
+        display: inline-flex;
+      }
+
+      .story-panel,
+      .form-panel {
+        padding: 26px 20px;
+      }
+
+      .brand-badge {
+        width: 100%;
+        border-radius: 24px;
+      }
+
+      .reminder-text {
+        font-size: 21px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="floatingToastWrap" class="floating-toast-wrap" aria-live="polite" aria-atomic="true"></div>
+  <button type="button" id="btnMobileLoginFab" class="mobile-login-fab">
+    <span>Masuk</span>
+  </button>
+
+  <div class="login-shell">
+    <div class="login-card">
+      <div class="login-grid">
+        <section class="story-panel">
+          <div class="brand-badge">
+              <img src="Alco_logo.png" alt="Aladzan Corpora" class="brand-logo">
+            <div>
+              <div class="brand-title">Aladzan Corpora</div>
+              <div class="brand-sub">Framework kerja untuk bangun sistem penghasilan</div>
+            </div>
+          </div>
+
+          <div class="eyebrow">Masuk Ke Sistem</div>
+          <h1 class="hero-title">Masuk ke Sistem yang Bukan Sekadar Cari Uang, Tapi Bangun Mesin Penghasilan</h1>
+          <div class="hero-copy">
+            Aladzan Corpora adalah framework untuk bantu lo mulai dari nol, bukan cuma coba-coba, tapi bangun sistem yang bisa berkembang.
+          </div>
+
+          <div class="bullet-grid">
+            <article class="bullet-card">
+              <div class="bullet-icon">01</div>
+              <div class="bullet-title">Bukan Kursus Biasa</div>
+              <div class="bullet-copy">Lo nggak dikasih teori doang, tapi diarahkan langsung ke aksi.</div>
+            </article>
+            <article class="bullet-card">
+              <div class="bullet-icon">02</div>
+              <div class="bullet-title">Fleksibel, Bukan Dipaksa</div>
+              <div class="bullet-copy">Lo bisa pilih jalur: jualan, digital product, atau sistem funnel.</div>
+            </article>
+            <article class="bullet-card">
+              <div class="bullet-icon">03</div>
+              <div class="bullet-title">Step-by-Step System</div>
+              <div class="bullet-copy">Semua udah dipecah jadi langkah kecil biar lo nggak overwhelm.</div>
+            </article>
+            <article class="bullet-card">
+              <div class="bullet-icon">04</div>
+              <div class="bullet-title">Terus Diupdate</div>
+              <div class="bullet-copy">Sistem akan terus berkembang sesuai real market dan pengalaman komunitas.</div>
+            </article>
+          </div>
+
+          <section class="filter-card">
+            <div class="section-title">Untuk Siapa Ini?</div>
+            <div class="section-copy">Halaman ini bukan buat semua orang.</div>
+            <div class="filter-grid">
+              <div>
+                <div class="section-title">Cocok buat lo yang:</div>
+                <ul class="filter-list">
+                  <li>Mulai dari nol</li>
+                  <li>Bingung mau mulai dari mana</li>
+                  <li>Capek coba-coba tapi nggak jelas arahnya</li>
+                </ul>
+              </div>
+              <div>
+                <div class="section-title">Nggak cocok buat lo yang:</div>
+                <ul class="filter-list">
+                  <li>Nyari hasil instan tanpa usaha</li>
+                  <li>Nggak mau belajar dan eksekusi</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="reminder-card">
+            <p class="reminder-text">Jangan cuma login. Gunakan sistem ini. Eksekusi. Evaluasi. Ulangi.</p>
+          </section>
+
+          <section class="quote-card">
+            <p class="quote-copy">Kebanyakan orang gagal bukan karena nggak bisa, tapi karena nggak punya sistem.</p>
+          </section>
+        </section>
+
+        <section class="form-panel">
+          <div class="form-inner">
+            <h2 class="form-title">Masuk ke Sistem</h2>
+            <div class="form-sub">Masuk cepat ke workspace panduan. Flow pendaftaran akses baru dipisah agar proses login tetap ringkas.</div>
+
+            <div class="login-focus-card">
+              <div class="login-focus-title">Fokus halaman ini</div>
+              <p class="login-focus-copy">Halaman ini khusus untuk masuk dan lanjut kerja. Proses daftar akses, pembayaran, dan upload bukti dipisah supaya user lama tidak terdistraksi saat ingin langsung masuk.</p>
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" id="email" class="form-control" placeholder="nama@gmail.com" autocomplete="email">
+              <div class="helper-text">Gmail ini jadi identitas akses lo di dalam sistem.</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" id="password" class="form-control" placeholder="Masukkan password akun" autocomplete="current-password">
+              <div class="helper-text">Role tetap otomatis dibaca dari Gmail yang sudah terdaftar.</div>
+              <button type="button" id="btnForgotPassword" class="btn btn-link btn-sm px-0 mt-2 forgot-btn">Lupa password?</button>
+            </div>
+
+            <button type="button" class="btn-login" onclick="login()">Masuk ke Sistem</button>
+
+            <div id="statusText" class="status-text"></div>
+            <div class="login-microcopy">Begitu masuk, fokus utama langsung ke folder, panduan, dan progres kerja.</div>
+
+            <div class="alt-access-box">
+              <div class="alt-access-title">Belum punya akses?</div>
+              <p class="alt-access-copy">Buka flow request akses terpisah untuk daftar Gmail, lihat harga akses, pakai kode diskon, dan kirim bukti transfer.</p>
+              <button type="button" class="btn-request" onclick="requestAccess()">Buka Request Akses</button>
+            </div>
+
+            <div class="form-note">
+              Sistem ini masih memakai daftar akses internal berbasis Gmail. Owner akan review request dari workspace owner.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="requestOverlay" class="request-overlay" aria-hidden="true">
+    <div class="request-modal">
+      <div class="request-head">
+        <div>
+          <div class="form-title" style="font-size: 24px; margin-bottom: 4px;">Request Akses</div>
+          <div class="form-sub" style="margin-bottom: 0;">Flow ini khusus untuk pendaftaran akses baru, terpisah dari halaman login agar proses masuk tetap cepat.</div>
+        </div>
+        <button type="button" id="btnCloseRequestOverlay" class="btn btn-outline-secondary btn-sm">Tutup</button>
+      </div>
+      <div class="request-body">
+        <div id="requestFormStep" class="request-step active">
+          <div class="mb-3">
+            <label for="requestName" class="form-label">Nama Akun</label>
+            <input type="text" id="requestName" class="form-control" placeholder="Nama lengkap / nama akun">
+          </div>
+          <div class="mb-3">
+            <label for="requestEmail" class="form-label">Gmail</label>
+            <input type="email" id="requestEmail" class="form-control" placeholder="nama@gmail.com" autocomplete="email">
+          </div>
+          <div class="mb-3">
+            <label for="requestPassword" class="form-label">Password</label>
+            <input type="password" id="requestPassword" class="form-control" placeholder="Buat password akses">
+          </div>
+          <div class="mb-3">
+            <label for="requestPasswordConfirm" class="form-label">Ulangi Password</label>
+            <input type="password" id="requestPasswordConfirm" class="form-control" placeholder="Ulangi password akses">
+          </div>
+          <div id="requestFormStatus" class="request-status"></div>
+          <div class="request-actions">
+            <button type="button" id="btnContinueToPricing" class="btn btn-primary">Lanjut</button>
+          </div>
+        </div>
+
+        <div id="requestPricingStep" class="request-step">
+          <div class="request-summary" id="requestSummaryBox"></div>
+          <div class="price-card">
+            <div class="price-label">Akses Web Aladzan Corpora</div>
+            <div class="price-value" id="basePriceText">Rp300.000</div>
+            <div class="price-meta" id="priceMetaText">Akses ini dibuat untuk user yang memang siap pakai sistemnya, bukan cuma lihat-lihat.</div>
+            <ul class="value-list">
+              <li>Akses framework Aladzan Corpora dari desktop dan mobile</li>
+              <li>Panduan step-by-step yang bisa langsung dieksekusi</li>
+              <li>Checklist, catatan, dan sistem kerja yang terus diupdate</li>
+              <li>Akses maksimal 2 desktop/laptop dan 1 HP per Gmail</li>
+            </ul>
+            <button type="button" id="btnManualAccessCTA" class="btn btn-primary access-cta-btn">Akses Sekarang</button>
+          </div>
+
+          <div class="payment-box">
+            <div class="payment-title">Pembayaran via transfer</div>
+            <div class="payment-method"><strong>Mandiri</strong>, AN Adzani Kusumawardani<br>1300019000382</div>
+            <div class="payment-method"><strong>BCA</strong><br>6768212300<br>Adzani Kusumawardani</div>
+            <div class="payment-method"><strong>Dana</strong><br>0895351651010</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="transferProofInput" class="form-label">Kirim Bukti TF</label>
+            <input type="file" id="transferProofInput" class="form-control" accept="image/*,.pdf">
+            <div class="helper-text">Upload screenshot atau file bukti transfer setelah bayar.</div>
+          </div>
+
+          <div class="discount-box">
+            <div class="discount-title">Punya Kode Diskon?</div>
+            <div class="mb-3">
+              <label for="discountCodeInput" class="form-label">Kode Diskon</label>
+              <input type="text" id="discountCodeInput" class="form-control" placeholder="Masukkan kode diskon">
+            </div>
+            <div class="request-actions" style="margin-top: 0;">
+              <button type="button" id="btnApplyDiscount" class="btn btn-outline-primary">Pakai Kode</button>
+              <button type="button" id="btnBackToRequestForm" class="btn btn-outline-secondary">Kembali</button>
+            </div>
+          </div>
+          <div id="discountStatus" class="request-status"></div>
+          <div class="request-actions">
+            <button type="button" id="btnSubmitAccessRequest" class="btn btn-primary">Kirim Request & Bukti TF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script>
+    const OWNER_PASSWORD = "owner123";
+    const PRIMARY_OWNER_EMAIL = "sanjayasena691@gmail.com";
+    const BASE_ACCESS_PRICE = 300000;
+    const firebaseConfig = {
+      apiKey: "AIzaSyCmpuVd1w8ipHT_5KaTZS9lxSrKU0aU5v4",
+      authDomain: "panduan-alco.firebaseapp.com",
+      projectId: "panduan-alco",
+      storageBucket: "panduan-alco.firebasestorage.app",
+      messagingSenderId: "346034039282",
+      appId: "1:346034039282:web:53d295c57b1f354617636b",
+      measurementId: "G-H23Q9Y39V2"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    const accountsCol = db.collection("accounts");
+    const accessRequestsCol = db.collection("accessRequests");
+    const discountCodesCol = db.collection("discountCodes");
+    let requestDraft = null;
+    let appliedDiscount = null;
+
+    function safeParse(raw, fallback) {
+      try {
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function redirectIfSessionActive() {
+      const activeUser = localStorage.getItem("activeUser");
+      const activeRole = localStorage.getItem("activeRole");
+      if (activeUser && activeRole) {
+        window.location.replace("index.html");
+      }
+    }
+
+    redirectIfSessionActive();
+
+    function isValidGmail(email) {
+      return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(email || "").trim());
+    }
+
+    function accountDocId(email) {
+      return encodeURIComponent(String(email || "").trim().toLowerCase());
+    }
+
+    function requestDocId(email) {
+      return encodeURIComponent(String(email || "").trim().toLowerCase());
+    }
+
+    function getDeviceType() {
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? "mobile" : "desktop";
+    }
+
+    function getDeviceId() {
+      const key = "aladzanDeviceId";
+      let value = localStorage.getItem(key);
+      if (!value) {
+        value = `device_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(key, value);
+      }
+      return value;
+    }
+
+    function getDeviceLabel() {
+      return `${navigator.platform || "Unknown"} - ${navigator.userAgent.includes("Mobile") ? "Mobile Browser" : "Desktop Browser"}`;
+    }
+
+    function formatRupiah(value) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }).format(Number(value || 0));
+    }
+
+    async function ensurePrimaryOwner() {
+      const ref = accountsCol.doc(accountDocId(PRIMARY_OWNER_EMAIL));
+      const snapshot = await ref.get();
+      if (!snapshot.exists) {
+        await ref.set({
+          name: "Primary Owner",
+          email: PRIMARY_OWNER_EMAIL,
+          role: "owner",
+          password: OWNER_PASSWORD,
+          devices: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        return;
+      }
+
+      const data = snapshot.data() || {};
+      const update = {
+        role: "owner",
+        updatedAt: new Date().toISOString()
+      };
+      if (!data.password) update.password = OWNER_PASSWORD;
+      if (!Array.isArray(data.devices)) update.devices = [];
+      await ref.set(update, { merge: true });
+    }
+
+    async function getAccountByEmail(email) {
+      const snapshot = await accountsCol.doc(accountDocId(email)).get();
+      if (!snapshot.exists) return null;
+      const data = snapshot.data() || {};
+      return {
+        id: snapshot.id,
+        name: data.name || "",
+        email: String(data.email || email).trim().toLowerCase(),
+        role: data.role === "owner" ? "owner" : "user",
+        password: typeof data.password === "string" ? data.password : "",
+        devices: Array.isArray(data.devices) ? data.devices : []
+      };
+    }
+
+    async function getPendingRequestByEmail(email) {
+      const snapshot = await accessRequestsCol.doc(requestDocId(email)).get();
+      if (!snapshot.exists) return null;
+      const data = snapshot.data() || {};
+      return {
+        id: snapshot.id,
+        ...data
+      };
+    }
+
+    function validateDeviceAccess(account) {
+      const currentDeviceId = getDeviceId();
+      const currentType = getDeviceType();
+      const devices = Array.isArray(account.devices) ? account.devices : [];
+      if (devices.some(item => item && item.id === currentDeviceId)) {
+        return { allowed: true, devices };
+      }
+
+      const desktopCount = devices.filter(item => item && item.type === "desktop").length;
+      const mobileCount = devices.filter(item => item && item.type === "mobile").length;
+      if (currentType === "desktop" && desktopCount >= 2) {
+        return { allowed: false, reason: "Akun ini sudah dipakai di 2 perangkat desktop/laptop." };
+      }
+      if (currentType === "mobile" && mobileCount >= 1) {
+        return { allowed: false, reason: "Akun ini sudah dipakai di 1 perangkat HP." };
+      }
+
+      return {
+        allowed: true,
+        devices: [
+          ...devices,
+          {
+            id: currentDeviceId,
+            type: currentType,
+            label: getDeviceLabel(),
+            lastLoginAt: new Date().toISOString()
+          }
+        ]
+      };
+    }
+
+    async function registerDeviceForAccount(account) {
+      const result = validateDeviceAccess(account);
+      if (!result.allowed) return result;
+
+      await accountsCol.doc(account.id).set({
+        devices: result.devices,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      return { allowed: true };
+    }
+
+    async function finishLogin(account) {
+      const deviceAccess = await registerDeviceForAccount(account);
+      if (!deviceAccess.allowed) {
+        setStatus(deviceAccess.reason || "Batas perangkat akun ini sudah penuh.", true);
+        showFloatingToast("Batas perangkat penuh", deviceAccess.reason || "Batas perangkat akun ini sudah penuh.", "error");
+        return false;
+      }
+
+      const role = account.role === "owner" ? "owner" : "user";
+      localStorage.setItem("activeUser", account.email);
+      localStorage.setItem("activeRole", role);
+      localStorage.setItem("activeEmail", account.email);
+      window.location.href = "index.html";
+      return true;
+    }
+
+    async function uploadTransferProof(file, email) {
+      if (!file) return { url: "", name: "" };
+      const safeName = `${Date.now()}_${String(file.name || "bukti").replace(/\s+/g, "_")}`;
+      const ref = storage.ref().child(`transfer-proofs/${accountDocId(email)}/${safeName}`);
+      const snapshot = await ref.put(file);
+      const url = await snapshot.ref.getDownloadURL();
+      return { url, name: file.name || safeName };
+    }
+
+    function setStatus(message, isError = false) {
+      const status = document.getElementById("statusText");
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    }
+
+    function showFloatingToast(title, message, type = "success") {
+      const wrap = document.getElementById("floatingToastWrap");
+      if (!wrap) return;
+
+      const toast = document.createElement("div");
+      toast.className = `floating-toast ${type === "error" ? "error" : "success"}`;
+      toast.innerHTML = `<span class="toast-title">${title}</span><div>${message}</div>`;
+      wrap.appendChild(toast);
+
+      window.setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-8px)";
+        toast.style.transition = "opacity 0.18s ease, transform 0.18s ease";
+      }, 3200);
+
+      window.setTimeout(() => {
+        toast.remove();
+      }, 3450);
+    }
+
+    function handleCloudError(error, fallbackMessage = "Koneksi ke server sedang bermasalah. Coba lagi.") {
+      console.error(error);
+      setStatus(fallbackMessage, true);
+      showFloatingToast("Koneksi bermasalah", fallbackMessage, "error");
+    }
+
+    function setRequestStatus(targetId, message, isError = false) {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      target.textContent = message;
+      target.classList.toggle("error", isError);
+    }
+
+    function openRequestOverlay() {
+      const overlay = document.getElementById("requestOverlay");
+      overlay.classList.add("active");
+      overlay.setAttribute("aria-hidden", "false");
+      document.getElementById("requestFormStep").classList.add("active");
+      document.getElementById("requestPricingStep").classList.remove("active");
+      document.getElementById("requestName").value = "";
+      document.getElementById("requestEmail").value = document.getElementById("email").value.trim().toLowerCase();
+      document.getElementById("requestPassword").value = document.getElementById("password").value;
+      document.getElementById("requestPasswordConfirm").value = "";
+      document.getElementById("discountCodeInput").value = "";
+      document.getElementById("transferProofInput").value = "";
+      document.getElementById("priceMetaText").textContent = "Masukkan kode diskon di bawah ini. Kalau kodenya aktif dan diatur auto akses, akun lo bisa langsung aktif tanpa nunggu ACC manual.";
+      appliedDiscount = null;
+      requestDraft = null;
+      setRequestStatus("requestFormStatus", "");
+      setRequestStatus("discountStatus", "");
+      document.getElementById("basePriceText").textContent = formatRupiah(BASE_ACCESS_PRICE);
+      document.getElementById("requestSummaryBox").textContent = "";
+    }
+
+    function closeRequestOverlay() {
+      const overlay = document.getElementById("requestOverlay");
+      overlay.classList.remove("active");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
+    function moveToPricingStep() {
+      const name = document.getElementById("requestName").value.trim();
+      const email = document.getElementById("requestEmail").value.trim().toLowerCase();
+      const password = document.getElementById("requestPassword").value;
+      const confirmPassword = document.getElementById("requestPasswordConfirm").value;
+
+      if (!name) {
+        setRequestStatus("requestFormStatus", "Isi nama akun dulu.", true);
+        return;
+      }
+      if (!isValidGmail(email)) {
+        setRequestStatus("requestFormStatus", "Masukkan Gmail yang valid.", true);
+        return;
+      }
+      if (password.length < 4) {
+        setRequestStatus("requestFormStatus", "Password minimal 4 karakter.", true);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setRequestStatus("requestFormStatus", "Password dan ulangi password belum sama.", true);
+        return;
+      }
+
+      requestDraft = { name, email, password };
+      document.getElementById("requestSummaryBox").textContent = `${name} • ${email}`;
+      document.getElementById("requestFormStep").classList.remove("active");
+      document.getElementById("requestPricingStep").classList.add("active");
+      setRequestStatus("requestFormStatus", "");
+      setRequestStatus("discountStatus", "");
+    }
+
+    async function applyDiscountCode() {
+      if (!requestDraft) return;
+      const code = document.getElementById("discountCodeInput").value.trim().toUpperCase();
+      if (!code) {
+        appliedDiscount = null;
+        document.getElementById("basePriceText").textContent = formatRupiah(BASE_ACCESS_PRICE);
+        setRequestStatus("discountStatus", "Masukkan kode diskon dulu.", true);
+        return;
+      }
+
+      try {
+        const snapshot = await discountCodesCol.doc(code).get();
+        if (!snapshot.exists) {
+          appliedDiscount = null;
+          document.getElementById("basePriceText").textContent = formatRupiah(BASE_ACCESS_PRICE);
+          setRequestStatus("discountStatus", "Kode diskon tidak ditemukan.", true);
+          return;
+        }
+
+        const data = snapshot.data() || {};
+        const expiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+        if (expiresAt && expiresAt.getTime() < Date.now()) {
+          appliedDiscount = null;
+          document.getElementById("basePriceText").textContent = formatRupiah(BASE_ACCESS_PRICE);
+          setRequestStatus("discountStatus", "Kode diskon sudah lewat masa aktifnya.", true);
+          return;
+        }
+
+        const discountAmount = Math.max(0, Number(data.discountAmount || 0));
+        const finalPrice = Math.max(0, BASE_ACCESS_PRICE - discountAmount);
+        appliedDiscount = {
+          code,
+          discountAmount,
+          finalPrice,
+          autoApprove: Boolean(data.autoApprove)
+        };
+
+        document.getElementById("basePriceText").textContent = formatRupiah(finalPrice);
+        setRequestStatus(
+          "discountStatus",
+          appliedDiscount.autoApprove
+            ? `Kode aktif. Potongan ${formatRupiah(discountAmount)} dan akun bisa auto aktif setelah dikirim.`
+            : `Kode aktif. Potongan ${formatRupiah(discountAmount)} diterapkan, tetapi akun tetap perlu review owner.`,
+          false
+        );
+        showFloatingToast("Kode berhasil", appliedDiscount.autoApprove
+          ? "Kode diskon valid dan akun bisa langsung aktif setelah dikirim."
+          : "Kode diskon valid dan potongan harga sudah diterapkan.");
+      } catch (error) {
+        appliedDiscount = null;
+        document.getElementById("basePriceText").textContent = formatRupiah(BASE_ACCESS_PRICE);
+        setRequestStatus("discountStatus", "Tidak bisa mengecek kode diskon karena koneksi ke server bermasalah.", true);
+        console.error(error);
+      }
+    }
+
+    async function submitAccessRequest() {
+      if (!requestDraft) return;
+      try {
+        const { name, email, password } = requestDraft;
+        await ensurePrimaryOwner();
+
+        const existingAccount = await getAccountByEmail(email);
+        if (existingAccount) {
+          setRequestStatus("discountStatus", "Gmail ini sudah terdaftar. Lo bisa langsung login.", true);
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        const finalPrice = appliedDiscount ? appliedDiscount.finalPrice : BASE_ACCESS_PRICE;
+        const code = appliedDiscount?.code || "";
+        const proofFile = document.getElementById("transferProofInput").files?.[0] || null;
+        let proof = { url: "", name: "" };
+
+        if (!appliedDiscount?.autoApprove && !proofFile) {
+          setRequestStatus("discountStatus", "Upload bukti transfer dulu sebelum kirim request akses.", true);
+          return;
+        }
+
+        if (proofFile) {
+          proof = await uploadTransferProof(proofFile, email);
+        }
+
+        if (appliedDiscount?.autoApprove) {
+          await accountsCol.doc(accountDocId(email)).set({
+            name,
+            email,
+            role: "user",
+            password,
+            devices: [],
+            approvedViaDiscount: true,
+            approvedDiscountCode: code,
+            createdAt: nowIso,
+            updatedAt: nowIso
+          }, { merge: true });
+
+          await accessRequestsCol.doc(requestDocId(email)).set({
+            name,
+            email,
+            password,
+            status: "approved",
+            requestedAt: nowIso,
+            approvedAt: nowIso,
+            appliedDiscountCode: code,
+            quotedPrice: BASE_ACCESS_PRICE,
+            finalPrice,
+            transferProofUrl: proof.url,
+            transferProofName: proof.name
+          }, { merge: true });
+
+          setStatus("Kode berhasil dipakai. Akun lo langsung aktif, sekarang tinggal login.", false);
+          showFloatingToast("Akses aktif", "Kode diskon berhasil dipakai dan akun langsung login ke sistem.");
+          const approvedAccount = await getAccountByEmail(email);
+          closeRequestOverlay();
+          if (approvedAccount) {
+            await finishLogin(approvedAccount);
+          }
+          return;
+        }
+
+        const pendingRequest = await getPendingRequestByEmail(email);
+        if (pendingRequest && String(pendingRequest.status || "").toLowerCase() !== "approved") {
+          setRequestStatus("discountStatus", "Request untuk Gmail ini sudah pernah dikirim. Tinggal tunggu review owner.", false);
+          return;
+        }
+
+        await accessRequestsCol.doc(requestDocId(email)).set({
+          name,
+          email,
+          password,
+          status: "pending",
+          requestedAt: nowIso,
+          appliedDiscountCode: code,
+          quotedPrice: BASE_ACCESS_PRICE,
+          finalPrice,
+          transferProofUrl: proof.url,
+          transferProofName: proof.name
+        }, { merge: true });
+
+        setStatus("Request akses berhasil dikirim. Owner akan lihat data akun dan harga aksesnya.", false);
+        showFloatingToast("Request akses terkirim", `Request akses tersimpan dengan total ${formatRupiah(finalPrice)}.`, "success");
+        closeRequestOverlay();
+      } catch (error) {
+        setRequestStatus("discountStatus", "Request akses gagal dikirim karena koneksi ke server bermasalah.", true);
+        console.error(error);
+      }
+    }
+
+    async function login() {
+      try {
+        await ensurePrimaryOwner();
+        const email = document.getElementById("email").value.trim().toLowerCase();
+        const password = document.getElementById("password").value;
+
+        if (!isValidGmail(email)) {
+          setStatus("Masukkan alamat Gmail yang valid.", true);
+          return;
+        }
+
+        const account = await getAccountByEmail(email);
+
+        if (!account) {
+          setStatus("Gmail ini belum terdaftar. Kirim request akses ke owner dulu.", true);
+          showFloatingToast("Akun belum terdaftar", "Gmail ini belum terdaftar. Kirim request akses ke owner dulu.", "error");
+          return;
+        }
+
+        if (!account.password) {
+          setStatus("Akun ini belum punya password aktif. Hubungi owner untuk atur ulang akses.", true);
+          showFloatingToast("Password belum aktif", "Akun ini belum punya password aktif. Hubungi owner untuk atur ulang akses.", "error");
+          return;
+        }
+
+        if (password !== account.password) {
+          setStatus("Password tidak cocok. Coba lagi atau gunakan tombol lupa password.", true);
+          showFloatingToast("Password salah", "Password yang kamu masukkan belum cocok. Coba lagi atau gunakan tombol lupa password.", "error");
+          return;
+        }
+
+        await finishLogin(account);
+      } catch (error) {
+        handleCloudError(error, "Tidak bisa login karena koneksi ke server/Firebase sedang bermasalah.");
+      }
+    }
+
+    function requestAccess() {
+      openRequestOverlay();
+    }
+
+    document.getElementById("email").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+
+    document.getElementById("password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+
+    document.getElementById("btnCloseRequestOverlay").addEventListener("click", closeRequestOverlay);
+    document.getElementById("btnContinueToPricing").addEventListener("click", moveToPricingStep);
+    document.getElementById("btnBackToRequestForm").addEventListener("click", () => {
+      document.getElementById("requestPricingStep").classList.remove("active");
+      document.getElementById("requestFormStep").classList.add("active");
+    });
+    document.getElementById("btnApplyDiscount").addEventListener("click", applyDiscountCode);
+    document.getElementById("btnSubmitAccessRequest").addEventListener("click", submitAccessRequest);
+    document.getElementById("requestOverlay").addEventListener("click", (e) => {
+      if (e.target.id === "requestOverlay") closeRequestOverlay();
+    });
+    document.getElementById("btnManualAccessCTA").addEventListener("click", () => {
+      document.getElementById("transferProofInput").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    document.getElementById("btnMobileLoginFab").addEventListener("click", () => {
+      document.querySelector(".form-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("email")?.focus();
+    });
+    document.getElementById("btnForgotPassword").addEventListener("click", () => {
+      setStatus("Kalau lupa password, kirim ulang request akses atau hubungi owner untuk reset password.", false);
+      showFloatingToast("Lupa password", "Hubungi owner atau kirim ulang request akses dengan password baru supaya owner bisa bantu reset.");
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch((error) => {
+          console.error("Gagal register service worker", error);
+        });
+      });
+    }
+
+    ensurePrimaryOwner().catch((error) => {
+      console.error(error);
+      showFloatingToast("Mode offline", "Firebase belum tersambung. Pastikan internet aktif dan web dibuka dari server/hosting.", "error");
+    });
+  </script>
+</body>
+</html>
