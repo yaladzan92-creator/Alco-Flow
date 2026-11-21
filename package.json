@@ -6,9 +6,14 @@
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'Static build ready'",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/model.test.js",
+    "test:browser": "node tests/browser.test.js"
   },
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.1"
   }
 }

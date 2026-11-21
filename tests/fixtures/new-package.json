@@ -1,0 +1,34 @@
+{
+  "type": "alco-flow-package",
+  "schemaVersion": 2,
+  "package": {
+    "id": "testing-package",
+    "version": "1.0.0",
+    "title": "Testing Package",
+    "description": "Paket untuk pengujian import.",
+    "guideRefs": ["testing-guide"]
+  },
+  "guides": [
+    {
+      "id": "testing-guide",
+      "version": "1.0.0",
+      "title": "Testing Guide",
+      "shortDescription": "Guide untuk pengujian.",
+      "stages": [
+        {
+          "id": "testing-stage",
+          "title": "Testing Stage",
+          "steps": [
+            {
+              "id": "testing-step",
+              "title": "Testing Step",
+              "instructions": ["Jalankan pengujian."],
+              "checklist": [{ "id": "done", "text": "Pengujian selesai" }],
+              "verification": { "id": "verification", "text": "Hasil telah diverifikasi" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

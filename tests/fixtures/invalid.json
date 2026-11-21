@@ -1,0 +1,8 @@
+{
+  "package": {
+    "id": "invalid package id",
+    "title": "Invalid",
+    "guideRefs": ["missing-guide"]
+  },
+  "guides": []
+}
