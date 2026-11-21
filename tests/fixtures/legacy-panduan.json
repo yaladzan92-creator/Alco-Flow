@@ -1,0 +1,14 @@
+{
+  "title": "Legacy Import",
+  "panduan": {
+    "Legacy Stage": [
+      {
+        "id": "legacy-guide-ui",
+        "judul": "Legacy Guide UI",
+        "langkah": [
+          { "id": "legacy-step-ui", "text": "Legacy Step UI", "checked": true }
+        ]
+      }
+    ]
+  }
+}

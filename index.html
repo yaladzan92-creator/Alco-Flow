@@ -652,6 +652,11 @@
       background: #ffffff;
     }
 
+    #btnBackToGuide {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     .step-modal-progress {
       width: 100%;
       height: 4px;
@@ -1095,6 +1100,21 @@
       .step-modal-footer {
         padding: 14px 16px;
       }
+      .step-modal-header {
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .step-modal-header > div:first-child {
+        min-width: 0;
+      }
+      .step-modal-header > div:first-child > .d-flex {
+        flex-wrap: wrap;
+        row-gap: 4px !important;
+      }
+      #btnBackToGuide {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
     }
   </style>
 </head>
@@ -1128,15 +1148,10 @@
           <i class="fas fa-link text-info"></i>
           <span>Shortcuts</span>
         </button>
-        <button type="button" class="nav-tool-btn" id="btnExportData" title="Export & Backup">
-          <i class="fas fa-file-export"></i>
-          <span>Backup</span>
+        <button type="button" class="nav-tool-btn" data-bs-toggle="offcanvas" data-bs-target="#managementDrawer" id="btnManageData" title="Pengelolaan data">
+          <i class="fas fa-sliders"></i>
+          <span>Kelola</span>
         </button>
-        <button type="button" class="nav-tool-btn" id="btnImportData" title="Import Data">
-          <i class="fas fa-file-import"></i>
-          <span>Import</span>
-        </button>
-        <input type="file" id="importFileInput" accept=".json,application/json" hidden>
       </div>
     </header>
 
@@ -1159,7 +1174,10 @@
           </div>
           <div class="fw-bold" style="font-size:16px; color:var(--text-main);" id="stepModalBreadcrumb">Stage 1 — Meta Foundation</div>
         </div>
-        <button type="button" class="btn-close" id="btnCloseStepModal" aria-label="Close"></button>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" id="btnBackToGuide"><i class="fas fa-arrow-left me-1"></i>Kembali</button>
+          <button type="button" class="btn-close" id="btnCloseStepModal" aria-label="Close"></button>
+        </div>
       </div>
       <div class="step-modal-progress">
         <div class="progress-bar-fill" id="stepModalProgressBar" style="width: 10%;"></div>
@@ -1445,10 +1463,59 @@
     </div>
   </div>
 
+  <!-- OFFCANVAS: PACKAGE & BACKUP MANAGEMENT -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="managementDrawer">
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title fw-bold"><i class="fas fa-sliders text-primary me-2"></i>Pengelolaan</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="mb-4">
+        <div class="fw-bold mb-1">Paket Panduan</div>
+        <div class="text-muted mb-3" style="font-size:13px;">Tambahkan paket baru atau perbarui paket dengan ID yang sama. Paket lain dan progres pengguna tetap dipertahankan.</div>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-primary" id="btnImportPackage"><i class="fas fa-box-open me-2"></i>Import Paket</button>
+          <button type="button" class="btn btn-outline-primary" id="btnExportActivePackage"><i class="fas fa-file-arrow-down me-2"></i>Export Paket Aktif</button>
+        </div>
+        <input type="file" id="packageImportFileInput" accept=".json,application/json" hidden>
+      </div>
+      <div class="border-top pt-4">
+        <div class="fw-bold mb-1">Backup Aplikasi</div>
+        <div class="text-muted mb-3" style="font-size:13px;">Backup mencakup semua paket, progres, catatan, dan shortcut. Restore akan mengganti seluruh data lokal setelah konfirmasi.</div>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-outline-secondary" id="btnExportData"><i class="fas fa-database me-2"></i>Download Backup Lengkap</button>
+          <button type="button" class="btn btn-outline-danger" id="btnRestoreBackup"><i class="fas fa-clock-rotate-left me-2"></i>Restore Backup</button>
+        </div>
+        <input type="file" id="restoreBackupFileInput" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT PREVIEW -->
+  <div class="modal fade" id="importPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-bottom">
+          <div>
+            <h5 class="modal-title fw-bold">Preview Import Paket</h5>
+            <div class="text-muted" style="font-size:13px;">Periksa isi paket sebelum menyimpan.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="importPreviewContent"></div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmPackageImport">Import Paket</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- BOOTSTRAP JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- DATA & APP LOGIC -->
+  <script src="data/model.js"></script>
   <script src="data/guides.js"></script>
   <script>
     /* ==========================================================================
@@ -1462,13 +1529,17 @@
 
     // Main App State
     let appState = {
+      contentStore: null,
+      progressStore: null,
+      packages: [],
       guides: [],
+      activePackageId: null,
       activeGuideId: null,
       activeStepId: null,
-      currentView: "dashboard", // 'dashboard' | 'guide-detail'
-      stepNotes: {},
+      currentView: "home", // 'home' | 'package-detail' | 'guide-detail'
       customShortcuts: []
     };
+    let pendingPackageImport = null;
 
     // Global Notes State
     let globalNotes = [];
@@ -1484,23 +1555,19 @@
        INITIALIZATION & STORAGE
        ========================================================================== */
     function initData() {
-      // 1. Load Guides Data from LocalStorage or default
+      // 1. Load content and progress stores, including migration from the legacy guides blob.
       const storedData = localStorage.getItem(APP_STORAGE_KEY);
-      if (storedData) {
-        try {
-          const parsed = JSON.parse(storedData);
-          if (parsed && Array.isArray(parsed.guides) && parsed.guides.length > 0) {
-            appState.guides = parsed.guides;
-            appState.stepNotes = parsed.stepNotes || {};
-          } else {
-            appState.guides = JSON.parse(JSON.stringify(window.DEFAULT_GUIDES || []));
-          }
-        } catch (e) {
-          appState.guides = JSON.parse(JSON.stringify(window.DEFAULT_GUIDES || []));
-        }
-      } else {
-        appState.guides = JSON.parse(JSON.stringify(window.DEFAULT_GUIDES || []));
+      try {
+        const parsed = storedData ? JSON.parse(storedData) : null;
+        const migrated = ALCO_MODEL.migrateStoredData(parsed, window.DEFAULT_GUIDES || []);
+        appState.contentStore = migrated.contentStore;
+        appState.progressStore = migrated.progressStore;
+      } catch (error) {
+        console.warn("Data lokal tidak valid, menggunakan konten bawaan:", error);
+        appState.contentStore = ALCO_MODEL.createDefaultContentStore(window.DEFAULT_GUIDES || []);
+        appState.progressStore = ALCO_MODEL.emptyProgressStore();
       }
+      syncRuntimeState();
 
       // 2. Load Global Notes
       try {
@@ -1521,11 +1588,20 @@
       saveData();
     }
 
+    function syncRuntimeState() {
+      appState.packages = ALCO_MODEL.clone(appState.contentStore?.packages || []);
+      appState.guides = ALCO_MODEL.hydrateGuides(appState.contentStore, appState.progressStore);
+      if (!appState.activePackageId || !appState.packages.some(pkg => pkg.id === appState.activePackageId)) {
+        appState.activePackageId = appState.packages[0]?.id || null;
+      }
+    }
+
     function saveData() {
       try {
         localStorage.setItem(APP_STORAGE_KEY, JSON.stringify({
-          guides: appState.guides,
-          stepNotes: appState.stepNotes
+          schemaVersion: 2,
+          contentStore: appState.contentStore,
+          progressStore: appState.progressStore
         }));
       } catch (e) {
         console.error("Gagal menyimpan data ke LocalStorage:", e);
@@ -1577,15 +1653,50 @@
       return { totalSteps, completedSteps, percent, status };
     }
 
+    function getPackageGuides(packageId) {
+      const pkg = appState.packages.find(item => item.id === packageId);
+      if (!pkg) return [];
+      const guideMap = new Map(appState.guides.map(guide => [guide.id, guide]));
+      return (pkg.guideRefs || []).map(ref => guideMap.get(ref)).filter(Boolean);
+    }
+
+    function getPackageProgress(packageId) {
+      const guides = getPackageGuides(packageId);
+      let totalSteps = 0;
+      let completedSteps = 0;
+      guides.forEach(guide => {
+        const progress = getGuideProgress(guide);
+        totalSteps += progress.totalSteps;
+        completedSteps += progress.completedSteps;
+      });
+      const percent = totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      return { totalSteps, completedSteps, percent, status: percent === 100 ? "ready" : completedSteps ? "in-progress" : "pending" };
+    }
+
+    function findPackageForGuide(guideId) {
+      return appState.packages.find(pkg => (pkg.guideRefs || []).includes(guideId)) || null;
+    }
+
     function getActiveOrResumeStep() {
-      // Find the first guide with progress > 0 but not 100%, or the first guide
+      const lastOpened = appState.progressStore?.lastOpened;
+      if (lastOpened) {
+        const guide = appState.guides.find(item => item.id === lastOpened.guideId);
+        const pkg = appState.packages.find(item => item.id === lastOpened.packageId) || findPackageForGuide(lastOpened.guideId);
+        if (guide && pkg) {
+          for (const stage of guide.stages) {
+            const step = stage.steps.find(item => item.id === lastOpened.stepId);
+            if (step) return { package: pkg, guide, stage, step, isNew: false };
+          }
+        }
+      }
+
       for (const guide of appState.guides) {
         const prog = getGuideProgress(guide);
         if (prog.status === "in-progress") {
           for (const stage of guide.stages) {
             for (const step of stage.steps) {
               if (!step.verification || !step.verification.checked) {
-                return { guide, stage, step, isNew: false };
+                return { package: findPackageForGuide(guide.id), guide, stage, step, isNew: false };
               }
             }
           }
@@ -1596,7 +1707,7 @@
       for (const guide of appState.guides) {
         const prog = getGuideProgress(guide);
         if (prog.status === "pending" && guide.stages[0]?.steps[0]) {
-          return { guide, stage: guide.stages[0], step: guide.stages[0].steps[0], isNew: true };
+          return { package: findPackageForGuide(guide.id), guide, stage: guide.stages[0], step: guide.stages[0].steps[0], isNew: true };
         }
       }
 
@@ -1607,7 +1718,7 @@
     /* ==========================================================================
        VIEW RENDERING: DASHBOARD
        ========================================================================== */
-    function renderDashboard() {
+    function renderLegacyDashboard() {
       const container = document.getElementById("mainViewContainer");
       appState.currentView = "dashboard";
 
@@ -1785,6 +1896,115 @@
       `;
     }
 
+    function renderGuideCard(guide) {
+      const prog = getGuideProgress(guide);
+      let statusBadge = `<span class="guide-badge secondary">Belum Dimulai</span>`;
+      let buttonText = "Mulai Panduan";
+      if (prog.status === "ready") {
+        statusBadge = `<span class="guide-badge" style="background:#ecfdf5; color:#065f46;"><i class="fas fa-check-circle me-1"></i>Selesai</span>`;
+        buttonText = "Tinjau Panduan";
+      } else if (prog.status === "in-progress") {
+        statusBadge = `<span class="guide-badge primary">Berjalan ${prog.percent}%</span>`;
+        buttonText = "Lanjutkan";
+      }
+      return `
+        <div class="guide-card" onclick="openGuideDetail('${guide.id}')">
+          <div class="guide-card-top">
+            <div class="guide-badge-row">
+              <span class="guide-badge ${guide.badgeType || 'primary'}">${escapeHtml(guide.badge || 'Panduan')}</span>
+              ${statusBadge}
+            </div>
+            <div class="guide-icon-box"><i class="${escapeHtml(guide.icon || 'fas fa-book-open')}"></i></div>
+            <div class="guide-title">${escapeHtml(guide.title)}</div>
+            <div class="guide-desc">${escapeHtml(guide.shortDescription || '')}</div>
+          </div>
+          <div class="guide-card-footer">
+            <div class="guide-stats-row"><span>${guide.stages.length} Tahapan · ${prog.totalSteps} Langkah</span><span>${prog.percent}%</span></div>
+            <div class="progress-bar-wrap mb-2"><div class="progress-bar-fill ${prog.status === 'ready' ? 'success' : ''}" style="width:${prog.percent}%;"></div></div>
+            <button type="button" class="guide-btn-action"><span>${buttonText}</span><i class="fas fa-chevron-right" style="font-size:11px;"></i></button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDashboard() {
+      const container = document.getElementById("mainViewContainer");
+      appState.currentView = "home";
+      const resume = getActiveOrResumeStep();
+      const packagesHtml = appState.packages.map(pkg => {
+        const progress = getPackageProgress(pkg.id);
+        const guideCount = getPackageGuides(pkg.id).length;
+        return `
+          <div class="guide-card" onclick="openPackageDetail('${pkg.id}')">
+            <div class="guide-card-top">
+              <div class="guide-badge-row">
+                <span class="guide-badge primary">${escapeHtml(pkg.badge || 'Paket Panduan')}</span>
+                <span class="text-muted" style="font-size:12px;">v${escapeHtml(pkg.version)}</span>
+              </div>
+              <div class="guide-icon-box"><i class="${escapeHtml(pkg.icon || 'fas fa-box-open')}"></i></div>
+              <div class="guide-title">${escapeHtml(pkg.title)}</div>
+              <div class="guide-desc">${escapeHtml(pkg.description)}</div>
+            </div>
+            <div class="guide-card-footer">
+              <div class="guide-stats-row"><span>${guideCount} Panduan · ${progress.totalSteps} Langkah</span><span>${progress.percent}%</span></div>
+              <div class="progress-bar-wrap mb-2"><div class="progress-bar-fill ${progress.status === 'ready' ? 'success' : ''}" style="width:${progress.percent}%;"></div></div>
+              <button type="button" class="guide-btn-action"><span>Buka Paket</span><i class="fas fa-chevron-right" style="font-size:11px;"></i></button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      let heroHtml = `<div class="hero-setup-card"><div class="hero-eyebrow"><i class="fas fa-play"></i> Continue Last Setup</div><div class="hero-title">Belum ada panduan yang dapat dijalankan</div><div class="hero-description">Import paket panduan dari menu Kelola untuk mulai.</div></div>`;
+      if (resume) {
+        const progress = getGuideProgress(resume.guide);
+        heroHtml = `
+          <div class="hero-setup-card" id="heroCard">
+            <div class="hero-eyebrow"><i class="fas fa-arrow-rotate-right"></i> Continue Last Setup</div>
+            <div class="hero-title">${escapeHtml(resume.step.title)}</div>
+            <div class="hero-description"><strong>${escapeHtml(resume.package?.title || '')}</strong> · ${escapeHtml(resume.guide.title)} · ${escapeHtml(resume.stage.title)}</div>
+            <div class="hero-progress-group">
+              <div class="hero-progress-meta"><span>${progress.completedSteps} dari ${progress.totalSteps} langkah selesai</span><span>${progress.percent}%</span></div>
+              <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${progress.percent}%;"></div></div>
+            </div>
+            <button type="button" class="hero-cta-btn" onclick="openStep('${resume.guide.id}', '${resume.step.id}')"><span>${resume.isNew ? 'Mulai Setup' : 'Lanjutkan Setup'}</span><i class="fas fa-arrow-right"></i></button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        ${heroHtml}
+        <div class="section-head d-flex justify-content-between align-items-end flex-wrap gap-2">
+          <div><div class="section-title">Paket Panduan</div><div class="section-subtitle">Pilih paket untuk melihat progres dan daftar panduan di dalamnya.</div></div>
+          <button type="button" class="btn btn-outline-primary rounded-pill px-3" onclick="document.getElementById('packageLibrary').scrollIntoView({behavior:'smooth'})"><i class="fas fa-book-open me-1"></i>Pustaka Panduan</button>
+        </div>
+        <div class="guides-grid" id="packageLibrary">${packagesHtml || '<div class="alert alert-light border">Belum ada paket panduan.</div>'}</div>
+      `;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function openPackageDetail(packageId) {
+      const pkg = appState.packages.find(item => item.id === packageId);
+      if (!pkg) return renderDashboard();
+      appState.activePackageId = packageId;
+      appState.currentView = "package-detail";
+      const guides = getPackageGuides(packageId);
+      const progress = getPackageProgress(packageId);
+      const container = document.getElementById("mainViewContainer");
+      container.innerHTML = `
+        <div class="breadcrumb-row"><a class="breadcrumb-link" onclick="renderDashboard()"><i class="fas fa-house me-1"></i>Beranda</a><span>/</span><span>${escapeHtml(pkg.title)}</span></div>
+        <div class="guide-detail-header">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div><span class="guide-badge primary mb-2 d-inline-block">Paket v${escapeHtml(pkg.version)}</span><h1 class="guide-title" style="font-size:26px;">${escapeHtml(pkg.title)}</h1><p class="text-muted mb-0" style="max-width:700px;font-size:14.5px;">${escapeHtml(pkg.description)}</p></div>
+            <div class="badge bg-light text-dark p-2 px-3 rounded-pill fw-bold">${progress.completedSteps}/${progress.totalSteps} Langkah (${progress.percent}%)</div>
+          </div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill ${progress.status === 'ready' ? 'success' : ''}" style="width:${progress.percent}%;"></div></div>
+        </div>
+        <div class="section-head"><div class="section-title">Daftar Panduan</div><div class="section-subtitle">Panduan dapat direferensikan oleh lebih dari satu paket tanpa menduplikasi konten.</div></div>
+        <div class="guides-grid">${guides.map(renderGuideCard).join("") || '<div class="alert alert-light border">Paket ini belum memiliki panduan.</div>'}</div>
+      `;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     /* ==========================================================================
        VIEW RENDERING: GUIDE DETAIL
        ========================================================================== */
@@ -1794,6 +2014,8 @@
 
       const guide = appState.guides.find(g => g.id === guideId);
       if (!guide) return renderDashboard();
+      const pkg = appState.packages.find(item => item.id === appState.activePackageId && (item.guideRefs || []).includes(guideId)) || findPackageForGuide(guideId);
+      if (pkg) appState.activePackageId = pkg.id;
 
       const prog = getGuideProgress(guide);
       const container = document.getElementById("mainViewContainer");
@@ -1868,7 +2090,9 @@
 
       container.innerHTML = `
         <div class="breadcrumb-row">
-          <a class="breadcrumb-link" onclick="renderDashboard()"><i class="fas fa-house me-1"></i>Dashboard</a>
+          <a class="breadcrumb-link" onclick="renderDashboard()"><i class="fas fa-house me-1"></i>Beranda</a>
+          <span>/</span>
+          <a class="breadcrumb-link" onclick="openPackageDetail('${pkg?.id || ''}')">${escapeHtml(pkg?.title || 'Paket')}</a>
           <span>/</span>
           <span>${escapeHtml(guide.title)}</span>
         </div>
@@ -1894,8 +2118,8 @@
               <span>${prog.status === 'ready' ? 'Buka Langkah Pertama' : 'Lanjutkan Langkah Terakhir'}</span>
               <i class="fas fa-arrow-right"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fw-semibold" onclick="renderDashboard()">
-              <i class="fas fa-arrow-left me-1"></i> Kembali ke Dashboard
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fw-semibold" onclick="openPackageDetail('${pkg?.id || ''}')">
+              <i class="fas fa-arrow-left me-1"></i> Kembali ke Paket
             </button>
           </div>
         </div>
@@ -1934,6 +2158,11 @@
       });
 
       if (!foundStep) return;
+
+      const activePackage = appState.packages.find(item => item.id === appState.activePackageId && (item.guideRefs || []).includes(guide.id)) || findPackageForGuide(guide.id);
+      if (activePackage) appState.activePackageId = activePackage.id;
+      appState.progressStore = ALCO_MODEL.markStepOpened(appState.progressStore, activePackage?.id || null, guide.id, foundStep.id);
+      saveData();
 
       const currentIndex = allStepsInGuide.findIndex(item => item.step.id === stepId);
       const totalSteps = allStepsInGuide.length;
@@ -2018,16 +2247,16 @@
         verifyCheckbox.checked = nextState;
         setStepVerified(guide.id, foundStep.id, nextState);
         if (nextState) {
-          // If marked complete, automatically celebrate or move to next step!
-          handleStepCompletedProgression(guide, currentIndex, allStepsInGuide);
+          const refreshedGuide = appState.guides.find(item => item.id === guide.id) || guide;
+          handleStepCompletedProgression(refreshedGuide, currentIndex, allStepsInGuide);
         }
       };
 
       // Populate Step-Specific Notes
       const notesInput = document.getElementById("stepSpecificNotes");
-      notesInput.value = appState.stepNotes[foundStep.id] || "";
+      notesInput.value = ALCO_MODEL.getStepNote(appState.progressStore, guide.id, foundStep.id);
       notesInput.oninput = (e) => {
-        appState.stepNotes[foundStep.id] = e.target.value;
+        appState.progressStore = ALCO_MODEL.setStepNote(appState.progressStore, guide.id, foundStep.id, e.target.value);
         saveData();
       };
 
@@ -2055,6 +2284,11 @@
         }
       };
 
+      document.getElementById("btnBackToGuide").onclick = () => {
+        document.getElementById("stepModalBackdrop").classList.add("d-none");
+        openGuideDetail(guide.id);
+      };
+
       // Show Modal
       document.getElementById("stepModalBackdrop").classList.remove("d-none");
       document.getElementById("stepModalBody").scrollTop = 0;
@@ -2071,37 +2305,14 @@
     }
 
     function toggleStepChecklist(guideId, stepId, checklistId, isChecked) {
-      const guide = appState.guides.find(g => g.id === guideId);
-      if (!guide) return;
-      guide.stages.forEach(stage => {
-        stage.steps.forEach(step => {
-          if (step.id === stepId && step.checklist) {
-            const item = step.checklist.find(c => c.id === checklistId);
-            if (item) {
-              item.checked = isChecked;
-              item.checkedAt = isChecked ? new Date().toISOString() : null;
-            }
-          }
-        });
-      });
+      appState.progressStore = ALCO_MODEL.setChecklistProgress(appState.progressStore, guideId, stepId, checklistId, isChecked);
+      syncRuntimeState();
       saveData();
     }
 
     function setStepVerified(guideId, stepId, isVerified) {
-      const guide = appState.guides.find(g => g.id === guideId);
-      if (!guide) return;
-      guide.stages.forEach(stage => {
-        stage.steps.forEach(step => {
-          if (step.id === stepId) {
-            if (!step.verification) {
-              step.verification = { id: "v1", text: "Verifikasi", checked: false, checkedAt: null };
-            }
-            step.verification.checked = isVerified;
-            step.verification.checkedAt = isVerified ? new Date().toISOString() : null;
-            step.status = isVerified ? "completed" : "in-progress";
-          }
-        });
-      });
+      appState.progressStore = ALCO_MODEL.setVerificationProgress(appState.progressStore, guideId, stepId, isVerified);
+      syncRuntimeState();
       saveData();
 
       const btnComplete = document.getElementById("btnToggleStepComplete");
@@ -2480,52 +2691,122 @@
        EXPORT & IMPORT BACKUP (BACKWARD COMPATIBLE)
        ========================================================================== */
     function exportAllData() {
-      const exportObject = {
-        app: "ALCO Flow",
-        version: "2.0",
-        exportedAt: new Date().toISOString(),
-        guides: appState.guides,
-        stepNotes: appState.stepNotes,
-        globalNotes: globalNotes,
+      const exportObject = ALCO_MODEL.createBackup(appState.contentStore, appState.progressStore, {
+        globalNotes,
         customShortcuts: appState.customShortcuts
-      };
+      });
+      downloadJsonFile(exportObject, `alco_flow_backup_${new Date().toISOString().slice(0,10)}.json`);
+    }
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+    function downloadJsonFile(payload, filename) {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `alco_flow_backup_${new Date().toISOString().slice(0,10)}.json`);
+      downloadAnchor.setAttribute("download", filename);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
     }
 
-    function handleImportFile(file) {
+    function exportActivePackage() {
+      const packageId = appState.activePackageId || appState.packages[0]?.id;
+      if (!packageId) return alert("Belum ada paket untuk diekspor.");
+      try {
+        const payload = ALCO_MODEL.exportPackage(appState.contentStore, packageId);
+        downloadJsonFile(payload, `alco_flow_package_${packageId}_${new Date().toISOString().slice(0,10)}.json`);
+      } catch (error) {
+        alert(`Export paket gagal: ${error.message}`);
+      }
+    }
+
+    function readJsonFile(file, onSuccess) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const imported = JSON.parse(e.target.result);
-          if (imported.guides && Array.isArray(imported.guides)) {
-            appState.guides = imported.guides;
-            appState.stepNotes = imported.stepNotes || {};
-            if (Array.isArray(imported.globalNotes)) globalNotes = imported.globalNotes;
-            if (Array.isArray(imported.customShortcuts)) appState.customShortcuts = imported.customShortcuts;
-          } else if (typeof imported === "object") {
-            // Legacy format check (folder -> items)
-            alert("File backup lama terdeteksi. Mengimpor catatan dan preferensi.");
-          }
+          onSuccess(JSON.parse(e.target.result), file.name);
+        } catch (err) {
+          alert(`File JSON tidak valid: ${err.message}`);
+        }
+      };
+      reader.onerror = () => alert("File tidak dapat dibaca. Data lama tidak berubah.");
+      reader.readAsText(file);
+    }
+
+    function handleImportFile(file) {
+      readJsonFile(file, (imported, fileName) => {
+        try {
+          const candidate = ALCO_MODEL.parsePackageImport(imported, fileName, appState.contentStore);
+          const summary = ALCO_MODEL.packageSummary(candidate, appState.contentStore);
+          const conflict = appState.packages.some(pkg => pkg.id === summary.id);
+          pendingPackageImport = { candidate, conflict };
+          document.getElementById("importPreviewContent").innerHTML = `
+            <div class="p-3 rounded-3 bg-light border mb-3">
+              <div class="fw-bold mb-1">${escapeHtml(summary.title)}</div>
+              <div class="text-muted" style="font-size:13px;">ID: ${escapeHtml(summary.id)} · Versi ${escapeHtml(summary.version)}</div>
+            </div>
+            <div class="row g-2 mb-3 text-center">
+              <div class="col-4"><div class="border rounded-3 p-2"><strong>${summary.guideCount}</strong><br><small class="text-muted">Guide</small></div></div>
+              <div class="col-4"><div class="border rounded-3 p-2"><strong>${summary.stageCount}</strong><br><small class="text-muted">Stage</small></div></div>
+              <div class="col-4"><div class="border rounded-3 p-2"><strong>${summary.stepCount}</strong><br><small class="text-muted">Step</small></div></div>
+            </div>
+            ${summary.legacy ? '<div class="alert alert-info py-2">Format legacy <code>panduan</code> terdeteksi dan telah dikonversi.</div>' : ''}
+            ${conflict ? '<div class="alert alert-warning py-2 mb-0"><strong>ID paket sudah ada.</strong> Pilih Update untuk mengganti konten paket. Progres pengguna tetap dipertahankan.</div>' : '<div class="alert alert-success py-2 mb-0">Paket baru akan ditambahkan tanpa menimpa paket lain.</div>'}
+          `;
+          const confirmButton = document.getElementById("btnConfirmPackageImport");
+          confirmButton.textContent = conflict ? "Update Paket" : "Import Paket";
+          confirmButton.className = conflict ? "btn btn-warning" : "btn btn-primary";
+          bootstrap.Modal.getOrCreateInstance(document.getElementById("importPreviewModal")).show();
+        } catch (error) {
+          pendingPackageImport = null;
+          alert(`Import paket ditolak: ${error.message}\n\nData lama tidak berubah.`);
+        }
+      });
+    }
+
+    function confirmPackageImport() {
+      if (!pendingPackageImport) return;
+      try {
+        const mode = pendingPackageImport.conflict ? "update" : "add";
+        const nextContentStore = ALCO_MODEL.mergePackage(appState.contentStore, pendingPackageImport.candidate, mode);
+        const nextProgressStore = ALCO_MODEL.mergeProgress(appState.progressStore, pendingPackageImport.candidate.progressStore);
+        appState.contentStore = nextContentStore;
+        appState.progressStore = nextProgressStore;
+        appState.activePackageId = pendingPackageImport.candidate.contentStore.packages[0].id;
+        syncRuntimeState();
+        saveData();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById("importPreviewModal")).hide();
+        pendingPackageImport = null;
+        openPackageDetail(appState.activePackageId);
+      } catch (error) {
+        alert(`Import paket gagal: ${error.message}\n\nData lama tidak berubah.`);
+      }
+    }
+
+    function handleRestoreBackup(file) {
+      readJsonFile(file, imported => {
+        try {
+          const restored = ALCO_MODEL.parseBackup(imported);
+          const packageCount = restored.contentStore.packages.length;
+          const guideCount = restored.contentStore.guides.length;
+          if (!confirm(`Restore backup akan mengganti seluruh data lokal dengan ${packageCount} paket dan ${guideCount} guide. Lanjutkan?`)) return;
+          appState.contentStore = restored.contentStore;
+          appState.progressStore = restored.progressStore;
+          globalNotes = restored.globalNotes;
+          appState.customShortcuts = restored.customShortcuts;
+          appState.activePackageId = restored.contentStore.packages[0]?.id || null;
+          syncRuntimeState();
           saveData();
           saveNotes();
           saveShortcuts();
-          alert("Data berhasil diimpor!");
-          renderDashboard();
           renderGlobalNotes();
           renderCustomShortcuts();
-        } catch (err) {
-          alert("Gagal membaca file JSON backup. Pastikan format file valid.");
+          renderDashboard();
+          alert("Backup berhasil direstore.");
+        } catch (error) {
+          alert(`Restore ditolak: ${error.message}\n\nData lama tidak berubah.`);
         }
-      };
-      reader.readAsText(file);
+      });
     }
 
     /* ==========================================================================
@@ -2591,11 +2872,22 @@
       // Shortcuts
       document.getElementById("btnAddCustomShortcut").onclick = addCustomShortcut;
 
-      // Backup & Import
+      // Package import/export and full backup/restore are intentionally separate.
       document.getElementById("btnExportData").onclick = exportAllData;
-      const fileInput = document.getElementById("importFileInput");
-      document.getElementById("btnImportData").onclick = () => fileInput.click();
-      fileInput.onchange = (e) => handleImportFile(e.target.files[0]);
+      document.getElementById("btnExportActivePackage").onclick = exportActivePackage;
+      document.getElementById("btnConfirmPackageImport").onclick = confirmPackageImport;
+      const packageInput = document.getElementById("packageImportFileInput");
+      const restoreInput = document.getElementById("restoreBackupFileInput");
+      document.getElementById("btnImportPackage").onclick = () => packageInput.click();
+      document.getElementById("btnRestoreBackup").onclick = () => restoreInput.click();
+      packageInput.onchange = (e) => {
+        handleImportFile(e.target.files[0]);
+        e.target.value = "";
+      };
+      restoreInput.onchange = (e) => {
+        handleRestoreBackup(e.target.files[0]);
+        e.target.value = "";
+      };
 
       // Checklist Drawer Trigger
       const checklistDrawerEl = document.getElementById("checklistDrawer");
