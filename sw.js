@@ -1,8 +1,8 @@
-const CACHE_NAME = "alco-flow-v2-packages-v2";
+const CACHE_NAME = "alco-flow-v2-packages-v3";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./data/model.js?v=2",
+  "./data/model.js?v=3",
   "./data/guides.js",
   "./manifest.webmanifest",
   "./Alco_logo.png",

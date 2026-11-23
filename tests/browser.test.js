@@ -37,7 +37,8 @@ async function waitForServer(url, timeoutMs = 10000) {
   const pageErrors = [];
   try {
     await waitForServer(BASE_URL);
-    browser = await chromium.launch({ executablePath: CHROME, headless: true });
+    const launchOptions = fs.existsSync(CHROME) ? { executablePath: CHROME, headless: true } : { headless: true };
+    browser = await chromium.launch(launchOptions);
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     page.on("pageerror", error => pageErrors.push(error.message));
@@ -78,6 +79,7 @@ async function waitForServer(url, timeoutMs = 10000) {
     await page.locator("#importPreviewModal.show").waitFor();
     assert.match(await page.locator("#importPreviewContent").innerText(), /Testing Package[\s\S]*1[\s\S]*Guide/);
     await page.locator("#btnConfirmPackageImport").click();
+    await page.locator("#importPreviewModal").waitFor({ state: "hidden" });
     await page.getByRole("heading", { name: "Testing Package", exact: true }).waitFor();
     pass("new package import preview and non-destructive merge");
 
@@ -96,6 +98,7 @@ async function waitForServer(url, timeoutMs = 10000) {
     await page.locator("#importPreviewModal.show").waitFor();
     assert.equal(await page.locator("#btnConfirmPackageImport").innerText(), "Update Paket");
     await page.locator("#btnConfirmPackageImport").click();
+    await page.locator("#importPreviewModal").waitFor({ state: "hidden" });
     await page.getByRole("heading", { name: "Testing Package Updated", exact: true }).waitFor();
     assert.match(await page.locator("#mainViewContainer").innerText(), /1\/1 Langkah \(100%\)/);
     pass("same-ID package update preserves progress");
@@ -104,6 +107,7 @@ async function waitForServer(url, timeoutMs = 10000) {
     await page.locator("#importPreviewModal.show").waitFor();
     assert.match(await page.locator("#importPreviewContent").innerText(), /format legacy/i);
     await page.locator("#btnConfirmPackageImport").click();
+    await page.locator("#importPreviewModal").waitFor({ state: "hidden" });
     await page.getByRole("heading", { name: "Legacy Import", exact: true }).waitFor();
     pass("legacy panduan import conversion");
 
@@ -143,18 +147,20 @@ async function waitForServer(url, timeoutMs = 10000) {
     });
     assert.equal(swStatus.ready, true);
     assert.equal(swStatus.hasCreatePackageTemplate, true);
-    assert.ok(swStatus.caches.includes("alco-flow-v2-packages-v2"));
+    assert.ok(swStatus.caches.includes("alco-flow-v2-packages-v3"));
+    assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v2"), false);
     assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v1"), false);
-    pass("service worker registers with V2 assets and latest ALCO_MODEL");
+    pass("service worker registers with V3 assets and latest ALCO_MODEL");
 
-    await page.setInputFiles("#packageImportFileInput", path.join(FIXTURES, "new-package.json"));
+    await page.setInputFiles("#packageImportFileInput", path.join(FIXTURES, "legacy-panduan.json"));
     await page.locator("#importPreviewModal.show").waitFor();
     await page.locator("#btnConfirmPackageImport").click();
-    await page.getByRole("heading", { name: "Testing Package", exact: true }).waitFor();
+    await page.locator("#importPreviewModal").waitFor({ state: "hidden" });
+    await page.getByRole("heading", { name: "Legacy Import", exact: true }).waitFor();
     await page.locator("#btnManageData").click();
     await page.locator("#managementDrawer.show").waitFor();
     assert.equal(await page.locator('[data-custom-package-id="meta-ads-scalev"]').count(), 0);
-    const deleteRow = page.locator('[data-custom-package-id="testing-package"]');
+    const deleteRow = page.locator('[data-custom-package-id="package-legacy-import"]');
     await deleteRow.waitFor();
     let deleteDialogMsg = "";
     page.once("dialog", async dialog => {
@@ -163,11 +169,21 @@ async function waitForServer(url, timeoutMs = 10000) {
     });
     await deleteRow.locator(".btn-delete-custom-package").click();
     await page.locator("#packageLibrary").waitFor();
-    assert.match(deleteDialogMsg, /Testing Package/);
-    assert.equal(await page.locator("#packageLibrary").getByText("Testing Package").count(), 0);
+    assert.match(deleteDialogMsg, /Legacy Import/);
+    assert.equal(await page.locator("#packageLibrary").getByText("Legacy Import").count(), 0);
+    assert.equal(await page.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
     await page.reload({ waitUntil: "networkidle" });
-    assert.equal(await page.locator("#packageLibrary").getByText("Testing Package").count(), 0);
-    pass("custom package deletion confirms with package name, redirects to home, and persists");
+    assert.equal(await page.locator("#packageLibrary").getByText("Legacy Import").count(), 0);
+    assert.equal(await page.locator("#packageLibrary").getByText("Meta Ads + Scalev").count(), 1);
+    const builtInCardText = await page.locator("#packageLibrary .guide-card", { hasText: "Meta Ads + Scalev" }).innerText();
+    assert.match(builtInCardText, /1%|\d+%/);
+    assert.ok(!builtInCardText.includes("0/"), "built-in package progress must remain preserved");
+    await page.locator("#btnManageData").click();
+    await page.locator("#managementDrawer.show").waitFor();
+    assert.equal(await page.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
+    await page.locator("#managementDrawer .btn-close").click();
+    await page.locator("#managementDrawer").waitFor({ state: "hidden" });
+    pass("custom package import, delete confirmation, home redirect, Kelola removal, and reload persistence");
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "desktop-home.png"), fullPage: true });

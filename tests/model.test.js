@@ -184,6 +184,8 @@ run("regression: latest index.html matches latest model API and sw.js uses netwo
   assert.ok(modelScriptMatch, "index.html must include data/model.js script tag");
   assert.ok(sw.includes(`"./${modelScriptMatch[1]}"`), "sw.js APP_ASSETS must precache the exact model.js URL used in index.html");
   assert.equal(sw.includes("alco-flow-v2-packages-v1"), false, "sw.js must bump cache version away from v1");
+  assert.equal(sw.includes("alco-flow-v2-packages-v2"), false, "sw.js must bump cache version away from v2");
+  assert.ok(sw.includes("alco-flow-v2-packages-v3"), "sw.js must use v3 cache version");
   assert.match(sw, /requestUrl\.pathname\.endsWith\("\.js"\)/, "sw.js must handle application JS requests explicitly");
   assert.match(sw, /isAppJsRequest[\s\S]*fetch\(event\.request\)[\s\S]*caches\.match\(event\.request\)/, "sw.js must use network-first with cache fallback for app JS");
 
@@ -262,7 +264,7 @@ run("regression: sw.js updates cache version, serves app JS network-first, and f
   await activatePromise;
 
   assert.equal(cacheStore.has("alco-flow-v2-packages-v1"), false, "old v1 cache must be deleted on activate");
-  assert.equal(cacheStore.has("alco-flow-v2-packages-v2"), true, "new v2 cache must exist");
+  assert.equal(cacheStore.has("alco-flow-v2-packages-v3"), true, "new v3 cache must exist");
 
   const runFetch = (url, opts = {}) => {
     let responsePromise;
@@ -273,12 +275,12 @@ run("regression: sw.js updates cache version, serves app JS network-first, and f
     return responsePromise;
   };
 
-  const onlineJs = await runFetch("https://app.test/data/model.js?v=2");
-  assert.equal(onlineJs.body, "network:https://app.test/data/model.js?v=2");
+  const onlineJs = await runFetch("https://app.test/data/model.js?v=3");
+  assert.equal(onlineJs.body, "network:https://app.test/data/model.js?v=3");
 
   online = false;
-  const offlineJs = await runFetch("https://app.test/data/model.js?v=2");
-  assert.equal(offlineJs.body, "network:https://app.test/data/model.js?v=2");
+  const offlineJs = await runFetch("https://app.test/data/model.js?v=3");
+  assert.equal(offlineJs.body, "network:https://app.test/data/model.js?v=3");
 
   const offlineHtml = await runFetch("https://app.test/index.html", { mode: "navigate", accept: "text/html" });
   assert.equal(offlineHtml.body, "precached:./index.html");
