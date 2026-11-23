@@ -6,9 +6,23 @@ require("../data/guides.js");
 
 const defaultGuides = window.DEFAULT_GUIDES;
 
+const pendingTests = [];
+
 function run(name, fn) {
   try {
-    fn();
+    const result = fn();
+    if (result && typeof result.then === "function") {
+      pendingTests.push(
+        result.then(
+          () => console.log(`PASS ${name}`),
+          (error) => {
+            console.error(`FAIL ${name}`);
+            throw error;
+          }
+        )
+      );
+      return;
+    }
     console.log(`PASS ${name}`);
   } catch (error) {
     console.error(`FAIL ${name}`);
@@ -159,4 +173,120 @@ run("package template uses v2 schema with 1 package, 1 guide, 1 stage, 1 complet
   assert.equal(model.validateContentStore(merged).valid, true);
 });
 
-console.log("All model tests passed.");
+run("regression: latest index.html matches latest model API and sw.js uses network-first for app JS", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const root = path.resolve(__dirname, "..");
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+
+  const modelScriptMatch = html.match(/<script\s+src="(data\/model\.js(?:\?[^"]+)?)"><\/script>/);
+  assert.ok(modelScriptMatch, "index.html must include data/model.js script tag");
+  assert.ok(sw.includes(`"./${modelScriptMatch[1]}"`), "sw.js APP_ASSETS must precache the exact model.js URL used in index.html");
+  assert.equal(sw.includes("alco-flow-v2-packages-v1"), false, "sw.js must bump cache version away from v1");
+  assert.match(sw, /requestUrl\.pathname\.endsWith\("\.js"\)/, "sw.js must handle application JS requests explicitly");
+  assert.match(sw, /isAppJsRequest[\s\S]*fetch\(event\.request\)[\s\S]*caches\.match\(event\.request\)/, "sw.js must use network-first with cache fallback for app JS");
+
+  const modelRefs = [...html.matchAll(/ALCO_MODEL\.([A-Za-z0-9_]+)\s*\(/g)].map(match => match[1]);
+  assert.ok(modelRefs.includes("createPackageTemplate"), "index.html must call ALCO_MODEL.createPackageTemplate");
+  modelRefs.forEach(methodName => {
+    assert.equal(typeof model[methodName], "function", `ALCO_MODEL.${methodName} called by index.html must exist on data/model.js`);
+  });
+});
+
+run("regression: sw.js updates cache version, serves app JS network-first, and falls back to cache offline", async () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const vm = require("node:vm");
+  const root = path.resolve(__dirname, "..");
+  const swCode = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+
+  const listeners = {};
+  const cacheStore = new Map([["alco-flow-v2-packages-v1", new Map([["https://app.test/data/model.js", { body: "old-v1" }]])]]);
+  const ensureBucket = (name) => {
+    if (!cacheStore.has(name)) cacheStore.set(name, new Map());
+    const map = cacheStore.get(name);
+    return {
+      addAll: async (assets) => assets.forEach(a => map.set(new URL(a, "https://app.test/").href, { body: `precached:${a}` })),
+      put: async (req, res) => map.set(typeof req === "string" ? req : req.url, res),
+      match: async (req, opts) => {
+        const url = typeof req === "string" ? req : req.url;
+        if (map.has(url)) return map.get(url);
+        if (opts?.ignoreSearch) {
+          const clean = url.split("?")[0];
+          for (const [k, v] of map.entries()) {
+            if (k.split("?")[0] === clean) return v;
+          }
+        }
+        return undefined;
+      }
+    };
+  };
+
+  let online = true;
+  const sandbox = {
+    URL,
+    self: {
+      location: { origin: "https://app.test" },
+      addEventListener: (type, fn) => { listeners[type] = fn; },
+      skipWaiting: () => {},
+      clients: { claim: () => {} }
+    },
+    caches: {
+      open: async (name) => ensureBucket(name),
+      keys: async () => Array.from(cacheStore.keys()),
+      delete: async (name) => cacheStore.delete(name),
+      match: async (req, opts) => {
+        const url = typeof req === "string" ? new URL(req, "https://app.test/").href : req.url;
+        for (const name of cacheStore.keys()) {
+          const hit = await ensureBucket(name).match(url, opts);
+          if (hit) return hit;
+        }
+        return undefined;
+      }
+    },
+    fetch: async (req) => {
+      if (!online) throw new Error("Offline");
+      const url = typeof req === "string" ? req : req.url;
+      return { ok: true, body: `network:${url}`, clone() { return { ok: true, body: `network:${url}` }; } };
+    }
+  };
+  vm.runInNewContext(swCode, sandbox);
+
+  let installPromise;
+  listeners.install({ waitUntil: (p) => { installPromise = p; } });
+  await installPromise;
+
+  let activatePromise;
+  listeners.activate({ waitUntil: (p) => { activatePromise = p; } });
+  await activatePromise;
+
+  assert.equal(cacheStore.has("alco-flow-v2-packages-v1"), false, "old v1 cache must be deleted on activate");
+  assert.equal(cacheStore.has("alco-flow-v2-packages-v2"), true, "new v2 cache must exist");
+
+  const runFetch = (url, opts = {}) => {
+    let responsePromise;
+    listeners.fetch({
+      request: { method: "GET", url, mode: opts.mode || "no-cors", headers: { get: () => opts.accept || "" } },
+      respondWith: (p) => { responsePromise = p; }
+    });
+    return responsePromise;
+  };
+
+  const onlineJs = await runFetch("https://app.test/data/model.js?v=2");
+  assert.equal(onlineJs.body, "network:https://app.test/data/model.js?v=2");
+
+  online = false;
+  const offlineJs = await runFetch("https://app.test/data/model.js?v=2");
+  assert.equal(offlineJs.body, "network:https://app.test/data/model.js?v=2");
+
+  const offlineHtml = await runFetch("https://app.test/index.html", { mode: "navigate", accept: "text/html" });
+  assert.equal(offlineHtml.body, "precached:./index.html");
+});
+
+Promise.all(pendingTests).then(() => {
+  console.log("All model tests passed.");
+}).catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

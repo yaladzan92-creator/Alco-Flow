@@ -131,13 +131,21 @@ async function waitForServer(url, timeoutMs = 10000) {
     pass("full backup restore is separate and restores prior state");
 
     await page.reload({ waitUntil: "networkidle" });
-    const swReady = await page.evaluate(async () => {
-      if (!("serviceWorker" in navigator)) return false;
+    const swStatus = await page.evaluate(async () => {
+      if (!("serviceWorker" in navigator)) return { ready: false, caches: [] };
       await navigator.serviceWorker.ready;
-      return true;
+      const cacheKeys = await caches.keys();
+      return {
+        ready: true,
+        caches: cacheKeys,
+        hasCreatePackageTemplate: typeof window.ALCO_MODEL?.createPackageTemplate === "function"
+      };
     });
-    assert.equal(swReady, true);
-    pass("service worker registers with V2 assets");
+    assert.equal(swStatus.ready, true);
+    assert.equal(swStatus.hasCreatePackageTemplate, true);
+    assert.ok(swStatus.caches.includes("alco-flow-v2-packages-v2"));
+    assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v1"), false);
+    pass("service worker registers with V2 assets and latest ALCO_MODEL");
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "desktop-home.png"), fullPage: true });

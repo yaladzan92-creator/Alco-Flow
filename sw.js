@@ -1,8 +1,8 @@
-const CACHE_NAME = "alco-flow-v2-packages-v1";
+const CACHE_NAME = "alco-flow-v2-packages-v2";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./data/model.js",
+  "./data/model.js?v=2",
   "./data/guides.js",
   "./manifest.webmanifest",
   "./Alco_logo.png",
@@ -38,6 +38,11 @@ self.addEventListener("fetch", (event) => {
   if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
     return;
   }
+
+  if (requestUrl.origin === self.location.origin && requestUrl.pathname.endsWith("/sw.js")) {
+    return;
+  }
+
   const isHtmlRequest =
     event.request.mode === "navigate" ||
     requestUrl.pathname.endsWith("/index.html") ||
@@ -47,12 +52,37 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          if (networkResponse && networkResponse.ok) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
           return networkResponse;
         })
         .catch(() => caches.match(event.request))
         .then((response) => response || caches.match("./index.html"))
+    );
+    return;
+  }
+
+  const isAppJsRequest =
+    requestUrl.origin === self.location.origin &&
+    requestUrl.pathname.endsWith(".js");
+
+  if (isAppJsRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.ok) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches.match(event.request).then((cachedResponse) =>
+            cachedResponse || caches.match(event.request, { ignoreSearch: true })
+          )
+        )
     );
     return;
   }
@@ -63,8 +93,10 @@ self.addEventListener("fetch", (event) => {
 
       return fetch(event.request)
         .then((networkResponse) => {
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          if (networkResponse && networkResponse.ok) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
           return networkResponse;
         })
         .catch(() => {
