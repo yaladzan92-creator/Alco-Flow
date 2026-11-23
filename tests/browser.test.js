@@ -147,6 +147,28 @@ async function waitForServer(url, timeoutMs = 10000) {
     assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v1"), false);
     pass("service worker registers with V2 assets and latest ALCO_MODEL");
 
+    await page.setInputFiles("#packageImportFileInput", path.join(FIXTURES, "new-package.json"));
+    await page.locator("#importPreviewModal.show").waitFor();
+    await page.locator("#btnConfirmPackageImport").click();
+    await page.getByRole("heading", { name: "Testing Package", exact: true }).waitFor();
+    await page.locator("#btnManageData").click();
+    await page.locator("#managementDrawer.show").waitFor();
+    assert.equal(await page.locator('[data-custom-package-id="meta-ads-scalev"]').count(), 0);
+    const deleteRow = page.locator('[data-custom-package-id="testing-package"]');
+    await deleteRow.waitFor();
+    let deleteDialogMsg = "";
+    page.once("dialog", async dialog => {
+      deleteDialogMsg = dialog.message();
+      await dialog.accept();
+    });
+    await deleteRow.locator(".btn-delete-custom-package").click();
+    await page.locator("#packageLibrary").waitFor();
+    assert.match(deleteDialogMsg, /Testing Package/);
+    assert.equal(await page.locator("#packageLibrary").getByText("Testing Package").count(), 0);
+    await page.reload({ waitUntil: "networkidle" });
+    assert.equal(await page.locator("#packageLibrary").getByText("Testing Package").count(), 0);
+    pass("custom package deletion confirms with package name, redirects to home, and persists");
+
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "desktop-home.png"), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });

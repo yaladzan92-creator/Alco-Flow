@@ -1486,6 +1486,10 @@
             <li>Simpan file <code>.json</code>, lalu klik <strong>Import Paket</strong> untuk mempreview dan menambahkannya.</li>
           </ol>
         </div>
+        <div class="mt-3 pt-3 border-top">
+          <div class="fw-semibold mb-2" style="font-size:13px;">Pengelolaan Paket Kustom</div>
+          <div id="customPackagesManagementList"></div>
+        </div>
         <input type="file" id="packageImportFileInput" accept=".json,application/json" hidden>
       </div>
       <div class="border-top pt-4">
@@ -2722,6 +2726,59 @@
       downloadJsonFile(template, "alco-flow-template-paket.json");
     }
 
+    function renderCustomPackagesManager() {
+      const container = document.getElementById("customPackagesManagementList");
+      if (!container) return;
+      const customPackages = appState.packages.filter(pkg => pkg.id !== ALCO_MODEL.DEFAULT_PACKAGE_ID);
+      if (customPackages.length === 0) {
+        container.innerHTML = `<div class="text-muted" style="font-size:12.5px;">Belum ada paket kustom terpasang. Paket bawaan tidak dapat dihapus.</div>`;
+        return;
+      }
+      container.innerHTML = customPackages.map(pkg => `
+        <div class="d-flex align-items-center justify-content-between gap-2 p-2 bg-light border rounded-3 mb-2" data-custom-package-id="${escapeHtml(pkg.id)}">
+          <div style="min-width:0;">
+            <div class="fw-semibold text-truncate" style="font-size:13px;">${escapeHtml(pkg.title)}</div>
+            <div class="text-muted text-truncate" style="font-size:11.5px;">${escapeHtml(pkg.id)} · v${escapeHtml(pkg.version)}</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 btn-delete-custom-package" data-package-id="${escapeHtml(pkg.id)}" onclick="deleteCustomPackage(this.dataset.packageId)">
+            <i class="fas fa-trash-can me-1"></i>Hapus
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function deleteCustomPackage(packageId) {
+      const pkg = appState.packages.find(item => item.id === packageId);
+      if (!pkg) return;
+      if (pkg.id === ALCO_MODEL.DEFAULT_PACKAGE_ID) {
+        alert("Paket bawaan tidak boleh dihapus.");
+        return;
+      }
+      if (!confirm(`Hapus paket "${pkg.title}"? Panduan yang tidak lagi dipakai paket lain akan dihapus, sementara progres dan catatan Anda tetap dipertahankan.`)) {
+        return;
+      }
+      try {
+        const wasActivePackage = appState.activePackageId === packageId;
+        appState.contentStore = ALCO_MODEL.deletePackage(appState.contentStore, packageId);
+        syncRuntimeState();
+        saveData();
+        renderCustomPackagesManager();
+
+        const activeGuideMissing = Boolean(appState.activeGuideId && !appState.guides.some(guide => guide.id === appState.activeGuideId));
+        if (wasActivePackage || activeGuideMissing) {
+          appState.activeGuideId = null;
+          appState.activeStepId = null;
+          document.getElementById("stepModalBackdrop").classList.add("d-none");
+          bootstrap.Offcanvas.getInstance(document.getElementById("managementDrawer"))?.hide();
+          renderDashboard();
+        } else if (appState.currentView === "home") {
+          renderDashboard();
+        }
+      } catch (error) {
+        alert(`Hapus paket gagal: ${error.message}`);
+      }
+    }
+
     function exportActivePackage() {
       const packageId = appState.activePackageId || appState.packages[0]?.id;
       if (!packageId) return alert("Belum ada paket untuk diekspor.");
@@ -2789,6 +2846,7 @@
         appState.activePackageId = pendingPackageImport.candidate.contentStore.packages[0].id;
         syncRuntimeState();
         saveData();
+        renderCustomPackagesManager();
         bootstrap.Modal.getOrCreateInstance(document.getElementById("importPreviewModal")).hide();
         pendingPackageImport = null;
         openPackageDetail(appState.activePackageId);
@@ -2815,6 +2873,7 @@
           saveShortcuts();
           renderGlobalNotes();
           renderCustomShortcuts();
+          renderCustomPackagesManager();
           renderDashboard();
           alert("Backup berhasil direstore.");
         } catch (error) {
@@ -2904,9 +2963,11 @@
         e.target.value = "";
       };
 
-      // Checklist Drawer Trigger
+      // Checklist & Management Drawer Triggers
       const checklistDrawerEl = document.getElementById("checklistDrawer");
       checklistDrawerEl.addEventListener("show.bs.offcanvas", refreshChecklistDrawer);
+      const managementDrawerEl = document.getElementById("managementDrawer");
+      managementDrawerEl.addEventListener("show.bs.offcanvas", renderCustomPackagesManager);
     }
 
     // App Startup
@@ -2916,6 +2977,7 @@
       renderDashboard();
       renderGlobalNotes();
       renderCustomShortcuts();
+      renderCustomPackagesManager();
       updateTimerUI();
       registerServiceWorker();
     });

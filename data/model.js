@@ -524,6 +524,27 @@
     };
   }
 
+  function deletePackage(contentStore, packageId) {
+    if (!packageId) throw new Error("Package ID diperlukan.");
+    if (packageId === DEFAULT_PACKAGE_ID) {
+      throw new Error("Paket bawaan meta-ads-scalev tidak boleh dihapus.");
+    }
+    const current = createContentStore(contentStore?.packages || [], contentStore?.guides || []);
+    const targetIndex = current.packages.findIndex(pkg => pkg.id === packageId);
+    if (targetIndex < 0) {
+      throw new Error(`Package ${packageId} tidak ditemukan.`);
+    }
+    current.packages.splice(targetIndex, 1);
+    const remainingGuideRefs = new Set();
+    current.packages.forEach(pkg => {
+      (pkg.guideRefs || []).forEach(ref => remainingGuideRefs.add(ref));
+    });
+    current.guides = current.guides.filter(guide => remainingGuideRefs.has(guide.id));
+    const validation = validateContentStore(current);
+    if (!validation.valid) throw new Error(validation.errors.join(" "));
+    return current;
+  }
+
   function exportPackage(contentStore, packageId) {
     const pkg = contentStore?.packages?.find(item => item.id === packageId);
     if (!pkg) throw new Error("Package tidak ditemukan.");
@@ -621,6 +642,7 @@
     mergePackage,
     mergeProgress,
     createPackageTemplate,
+    deletePackage,
     exportPackage,
     createBackup,
     parseBackup,

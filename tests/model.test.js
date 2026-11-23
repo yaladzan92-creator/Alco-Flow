@@ -284,6 +284,62 @@ run("regression: sw.js updates cache version, serves app JS network-first, and f
   assert.equal(offlineHtml.body, "precached:./index.html");
 });
 
+run("regression: deletePackage removes custom package and unreferenced guides while keeping progress", () => {
+  const base = model.createDefaultContentStore(defaultGuides);
+  const templateCandidate = model.parsePackageImport(model.createPackageTemplate(), "template.json", base);
+  const withCustom = model.mergePackage(base, templateCandidate, "add");
+  assert.equal(withCustom.packages.length, 2);
+  assert.equal(withCustom.guides.length, defaultGuides.length + 1);
+
+  let progress = model.emptyProgressStore();
+  progress = model.setVerificationProgress(progress, "template-panduan-1", "template-langkah-1", true, "2026-11-22T00:00:00.000Z");
+  progress = model.setStepNote(progress, "template-panduan-1", "template-langkah-1", "catatan tetap aman");
+
+  const afterDelete = model.deletePackage(withCustom, "template-paket-baru");
+  assert.equal(afterDelete.packages.length, 1);
+  assert.equal(afterDelete.packages.some(pkg => pkg.id === "template-paket-baru"), false);
+  assert.equal(afterDelete.guides.some(guide => guide.id === "template-panduan-1"), false);
+  assert.equal(afterDelete.guides.length, defaultGuides.length);
+  assert.equal(model.validateContentStore(afterDelete).valid, true);
+  assert.equal(model.getStepNote(progress, "template-panduan-1", "template-langkah-1"), "catatan tetap aman");
+  assert.equal(progress.steps[model.progressKey("template-panduan-1", "template-langkah-1")].completed, true);
+});
+
+run("regression: deletePackage preserves shared guide still referenced by another package", () => {
+  const base = model.createDefaultContentStore(defaultGuides);
+  const sharedCandidate = model.parsePackageImport({
+    package: {
+      id: "shared-and-exclusive",
+      version: "1.0.0",
+      title: "Shared & Exclusive",
+      guideRefs: ["meta-ads", "exclusive-guide"]
+    },
+    guides: [{
+      id: "exclusive-guide",
+      version: "1.0.0",
+      title: "Exclusive Guide",
+      stages: [{ id: "stage-1", title: "Stage 1", steps: [{ id: "step-1", title: "Step 1" }] }]
+    }]
+  }, "shared.json", base);
+  const withShared = model.mergePackage(base, sharedCandidate, "add");
+  assert.equal(withShared.guides.length, defaultGuides.length + 1);
+
+  const afterDelete = model.deletePackage(withShared, "shared-and-exclusive");
+  assert.equal(afterDelete.packages.some(pkg => pkg.id === "shared-and-exclusive"), false);
+  assert.equal(afterDelete.guides.some(guide => guide.id === "exclusive-guide"), false);
+  assert.equal(afterDelete.guides.some(guide => guide.id === "meta-ads"), true);
+  assert.equal(afterDelete.guides.length, defaultGuides.length);
+  assert.equal(model.validateContentStore(afterDelete).valid, true);
+});
+
+run("regression: deletePackage protects built-in meta-ads-scalev package", () => {
+  const base = model.createDefaultContentStore(defaultGuides);
+  const snapshot = JSON.stringify(base);
+  assert.throws(() => model.deletePackage(base, "meta-ads-scalev"), /tidak boleh dihapus/i);
+  assert.throws(() => model.deletePackage(base, "non-existent-package"), /tidak ditemukan/i);
+  assert.equal(JSON.stringify(base), snapshot);
+});
+
 Promise.all(pendingTests).then(() => {
   console.log("All model tests passed.");
 }).catch((error) => {
