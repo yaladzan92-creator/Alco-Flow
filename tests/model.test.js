@@ -185,7 +185,8 @@ run("regression: latest index.html matches latest model API and sw.js uses netwo
   assert.ok(sw.includes(`"./${modelScriptMatch[1]}"`), "sw.js APP_ASSETS must precache the exact model.js URL used in index.html");
   assert.equal(sw.includes("alco-flow-v2-packages-v1"), false, "sw.js must bump cache version away from v1");
   assert.equal(sw.includes("alco-flow-v2-packages-v2"), false, "sw.js must bump cache version away from v2");
-  assert.ok(sw.includes("alco-flow-v2-packages-v3"), "sw.js must use v3 cache version");
+  assert.equal(sw.includes("alco-flow-v2-packages-v3"), false, "sw.js must bump cache version away from v3");
+  assert.ok(sw.includes("alco-flow-v2-packages-v4"), "sw.js must use v4 cache version");
   assert.match(sw, /requestUrl\.pathname\.endsWith\("\.js"\)/, "sw.js must handle application JS requests explicitly");
   assert.match(sw, /isAppJsRequest[\s\S]*fetch\(event\.request\)[\s\S]*caches\.match\(event\.request\)/, "sw.js must use network-first with cache fallback for app JS");
 
@@ -264,12 +265,18 @@ run("regression: sw.js updates cache version, serves app JS network-first, and f
   await activatePromise;
 
   assert.equal(cacheStore.has("alco-flow-v2-packages-v1"), false, "old v1 cache must be deleted on activate");
-  assert.equal(cacheStore.has("alco-flow-v2-packages-v3"), true, "new v3 cache must exist");
+  assert.equal(cacheStore.has("alco-flow-v2-packages-v4"), true, "new v4 cache must exist");
 
   const runFetch = (url, opts = {}) => {
     let responsePromise;
     listeners.fetch({
-      request: { method: "GET", url, mode: opts.mode || "no-cors", headers: { get: () => opts.accept || "" } },
+      request: {
+        method: "GET",
+        url,
+        mode: opts.mode || "no-cors",
+        destination: opts.destination || "",
+        headers: { get: () => opts.accept || "" }
+      },
       respondWith: (p) => { responsePromise = p; }
     });
     return responsePromise;
@@ -284,6 +291,9 @@ run("regression: sw.js updates cache version, serves app JS network-first, and f
 
   const offlineHtml = await runFetch("https://app.test/index.html", { mode: "navigate", accept: "text/html" });
   assert.equal(offlineHtml.body, "precached:./index.html");
+
+  const externalImageHandled = await runFetch("https://cdn.example.test/tutorial.png", { destination: "image" });
+  assert.equal(externalImageHandled, undefined, "external images must bypass sw.js cache and HTML fallback");
 });
 
 run("regression: deletePackage removes custom package and unreferenced guides while keeping progress", () => {
@@ -340,6 +350,74 @@ run("regression: deletePackage protects built-in meta-ads-scalev package", () =>
   assert.throws(() => model.deletePackage(base, "meta-ads-scalev"), /tidak boleh dihapus/i);
   assert.throws(() => model.deletePackage(base, "non-existent-package"), /tidak ditemukan/i);
   assert.equal(JSON.stringify(base), snapshot);
+});
+
+run("regression: visualGuide metadata survives import/export/re-import and backup/restore including imageUrl null", () => {
+  const base = model.createDefaultContentStore(defaultGuides);
+  const visualPkg = {
+    type: "alco-flow-package",
+    schemaVersion: 2,
+    package: {
+      id: "visual-guide-pkg",
+      version: "1.0.0",
+      title: "Visual Guide Package",
+      guideRefs: ["visual-guide"]
+    },
+    guides: [{
+      id: "visual-guide",
+      version: "1.0.0",
+      title: "Panduan Visual",
+      stages: [{
+        id: "visual-stage",
+        title: "Tahap Visual",
+        steps: [
+          {
+            id: "step-with-image",
+            title: "Langkah Dengan Gambar",
+            instructions: ["Ikuti panduan."],
+            visualGuide: {
+              screenTitle: "Meta Ads Manager",
+              imageUrl: "https://example.com/tutorial.png",
+              imageCaption: "Contoh tampilan pembuatan kampanye",
+              highlightTargets: "Tombol Buat",
+              annotationInstructions: "Perhatikan tombol Buat",
+              referenceUrl: "https://adsmanager.facebook.com/",
+              imageStatus: "verified"
+            }
+          },
+          {
+            id: "step-null-image",
+            title: "Langkah Image Null",
+            instructions: ["Tanpa gambar."],
+            visualGuide: {
+              screenTitle: "Belum Ada Gambar",
+              imageUrl: null,
+              imageCaption: null,
+              imageStatus: "pending"
+            }
+          }
+        ]
+      }]
+    }]
+  };
+
+  const imported = model.parsePackageImport(visualPkg, "visual.json", base);
+  const merged = model.mergePackage(base, imported, "add");
+  const exported = model.exportPackage(merged, "visual-guide-pkg");
+  const reimported = model.parsePackageImport(exported, "visual-exported.json", base);
+  const reimportedSteps = reimported.contentStore.guides[0].stages[0].steps;
+  assert.equal(reimportedSteps[0].id, "step-with-image");
+  assert.deepEqual(reimportedSteps[0].visualGuide, visualPkg.guides[0].stages[0].steps[0].visualGuide);
+  assert.equal(reimportedSteps[1].visualGuide.imageUrl, null);
+
+  let progress = model.emptyProgressStore();
+  progress = model.setStepNote(progress, "visual-guide", "step-with-image", "catatan visual");
+  const backup = model.createBackup(merged, progress, { globalNotes: [], customShortcuts: [] });
+  const restored = model.parseBackup(backup);
+  const restoredGuide = restored.contentStore.guides.find(g => g.id === "visual-guide");
+  assert.deepEqual(restoredGuide.stages[0].steps[0].visualGuide, visualPkg.guides[0].stages[0].steps[0].visualGuide);
+  assert.equal(restoredGuide.stages[0].steps[1].visualGuide.imageUrl, null);
+  assert.equal(model.getStepNote(restored.progressStore, "visual-guide", "step-with-image"), "catatan visual");
 });
 
 Promise.all(pendingTests).then(() => {

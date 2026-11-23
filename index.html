@@ -675,6 +675,58 @@
       gap: 28px;
     }
 
+    .step-core-column,
+    .step-side-column {
+      min-width: 0;
+    }
+
+    .step-visual-guide-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .step-visual-guide-trigger {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+
+    .step-visual-guide-trigger:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    .step-visual-guide-img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      max-height: 360px;
+      height: auto;
+      object-fit: contain;
+      background: #ffffff;
+    }
+
+    #visualGuideZoomModal {
+      z-index: 1065;
+    }
+
+    .step-visual-guide-zoom-img {
+      display: block;
+      max-width: 100%;
+      max-height: 75vh;
+      width: auto;
+      height: auto;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
     @media (max-width: 900px) {
       .step-two-columns {
         grid-template-columns: 1fr;
@@ -1217,6 +1269,23 @@
               </ol>
             </div>
 
+            <div id="stepVisualGuideSection" class="step-visual-guide-card mb-3 d-none">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                <div class="fw-bold" style="font-size:13.5px; color:var(--text-main);">
+                  <i class="fas fa-image text-primary me-1"></i>
+                  <span id="stepVisualGuideTitle">Tampilan Referensi</span>
+                </div>
+                <span class="text-muted" style="font-size:11.5px;">Klik gambar untuk perbesar</span>
+              </div>
+              <button type="button" class="step-visual-guide-trigger" id="btnZoomVisualGuide" aria-label="Perbesar gambar tutorial">
+                <img id="stepVisualGuideImg" class="step-visual-guide-img" loading="lazy" referrerpolicy="no-referrer" alt="">
+              </button>
+              <div id="stepVisualGuideError" class="alert alert-light border text-muted py-2 px-3 mt-2 mb-0 d-none" style="font-size:12.5px;">
+                Gambar tutorial tidak dapat dimuat. Anda tetap dapat mengikuti instruksi langkah di atas.
+              </div>
+              <div id="stepVisualGuideCaption" class="text-muted mt-2 d-none" style="font-size:12.5px; line-height:1.45;"></div>
+            </div>
+
             <div id="stepExternalLinkContainer" class="mb-3">
               <a href="#" target="_blank" rel="noopener noreferrer" class="external-tool-btn" id="stepExternalLink">
                 <i class="fas fa-arrow-up-right-from-square"></i>
@@ -1548,6 +1617,25 @@
     </div>
   </div>
 
+  <!-- VISUAL GUIDE ZOOM MODAL -->
+  <div class="modal fade" id="visualGuideZoomModal" tabindex="-1" aria-labelledby="visualGuideZoomTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold" id="visualGuideZoomTitle">Tampilan Referensi</h5>
+          <button type="button" class="btn-close" id="btnCloseVisualGuideZoom" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body text-center bg-light">
+          <img id="visualGuideZoomImg" class="step-visual-guide-zoom-img rounded-3 border bg-white" referrerpolicy="no-referrer" alt="">
+          <div id="visualGuideZoomCaption" class="text-muted mt-3 d-none" style="font-size:13.5px;"></div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- BOOTSTRAP JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -1578,6 +1666,7 @@
     };
     let pendingPackageImport = null;
     let pendingPackageDeleteId = null;
+    let activeVisualGuideRenderToken = 0;
 
     // Global Notes State
     let globalNotes = [];
@@ -2221,6 +2310,9 @@
       const instContainer = document.getElementById("stepInstructions");
       instContainer.innerHTML = (foundStep.instructions || []).map(inst => `<li>${escapeHtml(inst)}</li>`).join("");
 
+      // Optional Tutorial Image (Visual Guide)
+      renderStepVisualGuide(foundStep);
+
       // External Link
       const linkContainer = document.getElementById("stepExternalLinkContainer");
       const extLink = document.getElementById("stepExternalLink");
@@ -2323,6 +2415,7 @@
       };
 
       document.getElementById("btnBackToGuide").onclick = () => {
+        resetStepVisualGuide();
         document.getElementById("stepModalBackdrop").classList.add("d-none");
         openGuideDetail(guide.id);
       };
@@ -2333,6 +2426,7 @@
     }
 
     function closeStepModal() {
+      resetStepVisualGuide();
       document.getElementById("stepModalBackdrop").classList.add("d-none");
       // Refresh current view
       if (appState.currentView === "guide-detail" && appState.activeGuideId) {
@@ -2794,7 +2888,8 @@
         syncRuntimeState();
         saveData();
         renderCustomPackagesManager();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById("deletePackageModal")).hide();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById("deletePackageModal"));
+        hideBootstrapModal(document.getElementById("deletePackageModal"));
 
         const activeGuideMissing = Boolean(appState.activeGuideId && !appState.guides.some(guide => guide.id === appState.activeGuideId));
         if (wasActivePackage || activeGuideMissing) {
@@ -2880,7 +2975,7 @@
         syncRuntimeState();
         saveData();
         renderCustomPackagesManager();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById("importPreviewModal")).hide();
+        hideBootstrapModal(document.getElementById("importPreviewModal"));
         pendingPackageImport = null;
         openPackageDetail(appState.activePackageId);
       } catch (error) {
@@ -2918,6 +3013,163 @@
     /* ==========================================================================
        PWA & UTILITIES
        ========================================================================== */
+    function resolveSafeImageUrl(rawUrl) {
+      if (typeof rawUrl !== "string") return null;
+      const trimmed = rawUrl.trim();
+      if (!trimmed) return null;
+      if (trimmed.startsWith("//") || trimmed.startsWith("\\\\")) return null;
+      if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)) {
+        try {
+          const parsed = new URL(trimmed);
+          if (parsed.protocol !== "https:") return null;
+          return parsed.href;
+        } catch {
+          return null;
+        }
+      }
+      try {
+        const resolved = new URL(trimmed, window.location.href);
+        if (resolved.origin !== window.location.origin) return null;
+        if (resolved.protocol !== "http:" && resolved.protocol !== "https:") return null;
+        return resolved.pathname + resolved.search + resolved.hash;
+      } catch {
+        return null;
+      }
+    }
+
+    function resetStepVisualGuide() {
+      activeVisualGuideRenderToken += 1;
+      const section = document.getElementById("stepVisualGuideSection");
+      const titleEl = document.getElementById("stepVisualGuideTitle");
+      const triggerBtn = document.getElementById("btnZoomVisualGuide");
+      const imgEl = document.getElementById("stepVisualGuideImg");
+      const errorEl = document.getElementById("stepVisualGuideError");
+      const captionEl = document.getElementById("stepVisualGuideCaption");
+      const zoomModalEl = document.getElementById("visualGuideZoomModal");
+      const zoomImgEl = document.getElementById("visualGuideZoomImg");
+      const zoomCaptionEl = document.getElementById("visualGuideZoomCaption");
+
+      if (section) section.classList.add("d-none");
+      if (titleEl) titleEl.textContent = "Tampilan Referensi";
+      if (triggerBtn) {
+        triggerBtn.classList.remove("d-none");
+        triggerBtn.disabled = false;
+      }
+      if (imgEl) {
+        imgEl.onload = null;
+        imgEl.onerror = null;
+        imgEl.removeAttribute("src");
+        imgEl.alt = "";
+      }
+      if (errorEl) errorEl.classList.add("d-none");
+      if (captionEl) {
+        captionEl.textContent = "";
+        captionEl.classList.add("d-none");
+      }
+      if (zoomModalEl) {
+        hideBootstrapModal(zoomModalEl);
+      }
+      if (zoomImgEl) {
+        zoomImgEl.removeAttribute("src");
+        zoomImgEl.alt = "";
+      }
+      if (zoomCaptionEl) {
+        zoomCaptionEl.textContent = "";
+        zoomCaptionEl.classList.add("d-none");
+      }
+    }
+
+    function renderStepVisualGuide(step) {
+      resetStepVisualGuide();
+      const vg = step && typeof step.visualGuide === "object" ? step.visualGuide : null;
+      const safeUrl = vg ? resolveSafeImageUrl(vg.imageUrl) : null;
+      if (!safeUrl) return;
+
+      const token = activeVisualGuideRenderToken;
+      const section = document.getElementById("stepVisualGuideSection");
+      const titleEl = document.getElementById("stepVisualGuideTitle");
+      const triggerBtn = document.getElementById("btnZoomVisualGuide");
+      const imgEl = document.getElementById("stepVisualGuideImg");
+      const errorEl = document.getElementById("stepVisualGuideError");
+      const captionEl = document.getElementById("stepVisualGuideCaption");
+
+      const screenTitle = typeof vg.screenTitle === "string" ? vg.screenTitle.trim() : "";
+      const imageCaption = typeof vg.imageCaption === "string" ? vg.imageCaption.trim() : "";
+      const altText = screenTitle || imageCaption || (typeof step.title === "string" ? step.title : "Gambar tutorial");
+
+      titleEl.textContent = screenTitle || "Tampilan Referensi";
+      if (imageCaption) {
+        captionEl.textContent = imageCaption;
+        captionEl.classList.remove("d-none");
+      }
+
+      imgEl.onload = () => {
+        if (token !== activeVisualGuideRenderToken) return;
+        errorEl.classList.add("d-none");
+        triggerBtn.classList.remove("d-none");
+        triggerBtn.disabled = false;
+      };
+
+      imgEl.onerror = () => {
+        if (token !== activeVisualGuideRenderToken) return;
+        triggerBtn.classList.add("d-none");
+        triggerBtn.disabled = true;
+        errorEl.classList.remove("d-none");
+      };
+
+      imgEl.setAttribute("referrerpolicy", "no-referrer");
+      imgEl.setAttribute("loading", "lazy");
+      imgEl.alt = altText;
+      imgEl.src = safeUrl;
+      section.dataset.safeImageUrl = safeUrl;
+      section.dataset.screenTitle = screenTitle || "Tampilan Referensi";
+      section.dataset.imageCaption = imageCaption;
+      section.dataset.imageAlt = altText;
+      section.classList.remove("d-none");
+    }
+
+    function openVisualGuideZoom() {
+      const section = document.getElementById("stepVisualGuideSection");
+      const triggerBtn = document.getElementById("btnZoomVisualGuide");
+      if (!section || section.classList.contains("d-none") || triggerBtn.disabled || triggerBtn.classList.contains("d-none")) {
+        return;
+      }
+      const safeUrl = resolveSafeImageUrl(section.dataset.safeImageUrl || "");
+      if (!safeUrl) return;
+
+      const zoomModalEl = document.getElementById("visualGuideZoomModal");
+      const zoomTitleEl = document.getElementById("visualGuideZoomTitle");
+      const zoomImgEl = document.getElementById("visualGuideZoomImg");
+      const zoomCaptionEl = document.getElementById("visualGuideZoomCaption");
+
+      zoomTitleEl.textContent = section.dataset.screenTitle || "Tampilan Referensi";
+      zoomImgEl.setAttribute("referrerpolicy", "no-referrer");
+      zoomImgEl.alt = section.dataset.imageAlt || "Tampilan Referensi";
+      zoomImgEl.src = safeUrl;
+
+      const caption = section.dataset.imageCaption || "";
+      if (caption) {
+        zoomCaptionEl.textContent = caption;
+        zoomCaptionEl.classList.remove("d-none");
+      } else {
+        zoomCaptionEl.textContent = "";
+        zoomCaptionEl.classList.add("d-none");
+      }
+
+      bootstrap.Modal.getOrCreateInstance(zoomModalEl).show();
+    }
+
+    function hideBootstrapModal(modalEl) {
+      if (!modalEl || !window.bootstrap) return;
+      const instance = bootstrap.Modal.getInstance(modalEl);
+      if (!instance || !instance._isShown) return;
+      if (instance._isTransitioning) {
+        modalEl.addEventListener("shown.bs.modal", () => instance.hide(), { once: true });
+      } else {
+        instance.hide();
+      }
+    }
+
     function escapeHtml(str) {
       if (!str) return "";
       return String(str)
@@ -3012,6 +3264,29 @@
       document.getElementById("deletePackageModal").addEventListener("hidden.bs.modal", () => {
         pendingPackageDeleteId = null;
         document.getElementById("deletePackageError").classList.add("d-none");
+      });
+      document.getElementById("btnZoomVisualGuide").onclick = openVisualGuideZoom;
+      const zoomModalEl = document.getElementById("visualGuideZoomModal");
+      zoomModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+        btn.addEventListener("click", () => hideBootstrapModal(zoomModalEl));
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && zoomModalEl.classList.contains("show")) {
+          event.preventDefault();
+          hideBootstrapModal(zoomModalEl);
+        }
+      });
+      zoomModalEl.addEventListener("hidden.bs.modal", () => {
+        const zoomImgEl = document.getElementById("visualGuideZoomImg");
+        const zoomCaptionEl = document.getElementById("visualGuideZoomCaption");
+        if (zoomImgEl) {
+          zoomImgEl.removeAttribute("src");
+          zoomImgEl.alt = "";
+        }
+        if (zoomCaptionEl) {
+          zoomCaptionEl.textContent = "";
+          zoomCaptionEl.classList.add("d-none");
+        }
       });
     }
 

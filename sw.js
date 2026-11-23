@@ -1,4 +1,4 @@
-const CACHE_NAME = "alco-flow-v2-packages-v3";
+const CACHE_NAME = "alco-flow-v2-packages-v4";
 const APP_ASSETS = [
   "./",
   "./index.html",
@@ -40,6 +40,13 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (requestUrl.origin === self.location.origin && requestUrl.pathname.endsWith("/sw.js")) {
+    return;
+  }
+
+  if (
+    requestUrl.origin !== self.location.origin &&
+    (event.request.destination === "image" || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(requestUrl.pathname))
+  ) {
     return;
   }
 

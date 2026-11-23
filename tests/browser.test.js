@@ -147,10 +147,11 @@ async function waitForServer(url, timeoutMs = 10000) {
     });
     assert.equal(swStatus.ready, true);
     assert.equal(swStatus.hasCreatePackageTemplate, true);
-    assert.ok(swStatus.caches.includes("alco-flow-v2-packages-v3"));
+    assert.ok(swStatus.caches.includes("alco-flow-v2-packages-v4"));
+    assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v3"), false);
     assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v2"), false);
     assert.equal(swStatus.caches.includes("alco-flow-v2-packages-v1"), false);
-    pass("service worker registers with V3 assets and latest ALCO_MODEL");
+    pass("service worker registers with V4 assets and latest ALCO_MODEL");
 
     await page.setInputFiles("#packageImportFileInput", path.join(FIXTURES, "legacy-panduan.json"));
     await page.locator("#importPreviewModal.show").waitFor();
@@ -243,9 +244,176 @@ async function waitForServer(url, timeoutMs = 10000) {
     await frame.locator("#btnManageData").click();
     await frame.locator("#managementDrawer.show").waitFor();
     assert.equal(await frame.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
+    await frame.locator("#managementDrawer .btn-close").click();
+    await frame.locator("#managementDrawer").waitFor({ state: "hidden" });
+    assert.deepEqual(sandboxDialogConsoleMessages, []);
+    pass("sandboxed iframe without allow-modals supports Bootstrap delete modal without blocked-dialog console errors");
+
+    const oneByOnePng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64"
+    );
+    await context.route("https://visual.example.test/**", async route => {
+      if (route.request().url().endsWith("/valid.png")) {
+        await route.fulfill({ status: 200, contentType: "image/png", body: oneByOnePng });
+      } else {
+        await route.fulfill({ status: 404, contentType: "text/plain", body: "Not found" });
+      }
+    });
+
+    const visualFixturePath = path.join(ARTIFACTS, "visual-guide-package.json");
+    fs.writeFileSync(visualFixturePath, JSON.stringify({
+      type: "alco-flow-package",
+      schemaVersion: 2,
+      package: {
+        id: "visual-guide-pkg",
+        version: "1.0.0",
+        title: "Visual Guide Test Package",
+        description: "Pengujian gambar tutorial opsional.",
+        guideRefs: ["visual-guide"]
+      },
+      guides: [{
+        id: "visual-guide",
+        version: "1.0.0",
+        title: "Visual Guide Setup",
+        stages: [{
+          id: "visual-stage",
+          title: "Tahap Visual",
+          steps: [
+            {
+              id: "step-no-image",
+              title: "Step Tanpa Gambar",
+              instructions: ["Baca instruksi tanpa gambar."]
+            },
+            {
+              id: "step-valid-image",
+              title: "Step Gambar Valid",
+              instructions: ["Perhatikan tombol Buat pada gambar."],
+              visualGuide: {
+                screenTitle: "Meta Ads Manager <safe>",
+                imageUrl: "https://visual.example.test/valid.png",
+                imageCaption: "Contoh caption <img src=x onerror=alert(1)>",
+                highlightTargets: "Tombol Buat",
+                annotationInstructions: "Klik tombol Buat",
+                referenceUrl: "https://adsmanager.facebook.com/",
+                imageStatus: "verified"
+              }
+            },
+            {
+              id: "step-null-image",
+              title: "Step Image Null",
+              instructions: ["Instruksi dengan imageUrl null."],
+              visualGuide: {
+                screenTitle: "Pending Screenshot",
+                imageUrl: null,
+                imageCaption: "Belum tersedia",
+                imageStatus: "pending"
+              }
+            },
+            {
+              id: "step-unsafe-url",
+              title: "Step URL Berbahaya",
+              instructions: ["URL berbahaya harus ditolak."],
+              visualGuide: {
+                screenTitle: "Dangerous",
+                imageUrl: "javascript:alert(1)",
+                imageCaption: "Harus tersembunyi"
+              }
+            },
+            {
+              id: "step-broken-image",
+              title: "Step Gambar Gagal Dimuat",
+              instructions: ["Instruksi tetap tampil walau gambar gagal dimuat."],
+              visualGuide: {
+                screenTitle: "Broken Screen",
+                imageUrl: "https://visual.example.test/broken.png",
+                imageCaption: "Gambar rusak"
+              }
+            }
+          ]
+        }]
+      }]
+    }, null, 2));
+
+    await page.setInputFiles("#packageImportFileInput", visualFixturePath);
+    await page.locator("#importPreviewModal.show").waitFor();
+    await page.locator("#btnConfirmPackageImport").click();
+    await page.locator("#importPreviewModal").waitFor({ state: "hidden" });
+    await page.locator("#mainViewContainer").getByText("Visual Guide Setup", { exact: true }).click();
+    await page.locator(".step-item-card").first().click();
+    await page.locator("#stepModalBackdrop:not(.d-none)").waitFor();
+
+    // 1. Step without visualGuide
+    assert.equal(await page.locator("#stepVisualGuideSection").evaluate(el => el.classList.contains("d-none")), true);
+
+    // 2. Step with valid HTTPS image
+    await page.locator("#btnStepModalNext").click();
+    await page.locator("#stepVisualGuideSection:not(.d-none)").waitFor();
+    assert.equal(await page.locator("#stepVisualGuideTitle").innerText(), "Meta Ads Manager <safe>");
+    assert.equal(await page.locator("#stepVisualGuideCaption").innerText(), "Contoh caption <img src=x onerror=alert(1)>");
+    assert.equal(await page.locator("#stepVisualGuideImg").getAttribute("loading"), "lazy");
+    assert.equal(await page.locator("#stepVisualGuideImg").getAttribute("referrerpolicy"), "no-referrer");
+    await page.waitForFunction(() => {
+      const img = document.getElementById("stepVisualGuideImg");
+      return Boolean(img && img.complete && img.naturalWidth > 0);
+    });
+
+    // Zoom modal open + Escape close + close button
+    await page.locator("#btnZoomVisualGuide").click();
+    await page.locator("#visualGuideZoomModal.show").waitFor();
+    assert.equal(await page.locator("#visualGuideZoomImg").getAttribute("referrerpolicy"), "no-referrer");
+    await page.keyboard.press("Escape");
+    await page.locator("#visualGuideZoomModal").waitFor({ state: "hidden" });
+    await page.locator("#btnZoomVisualGuide").click();
+    await page.locator("#visualGuideZoomModal.show").waitFor();
+    await page.locator("#btnCloseVisualGuideZoom").click();
+    await page.locator("#visualGuideZoomModal").waitFor({ state: "hidden" });
+
+    // 3. Step with imageUrl: null clears old image
+    await page.locator("#btnStepModalNext").click();
+    assert.equal(await page.locator("#stepVisualGuideSection").evaluate(el => el.classList.contains("d-none")), true);
+    assert.equal(await page.locator("#stepVisualGuideImg").getAttribute("src"), null);
+
+    // 4. Step with dangerous URL rejected
+    await page.locator("#btnStepModalNext").click();
+    assert.equal(await page.locator("#stepVisualGuideSection").evaluate(el => el.classList.contains("d-none")), true);
+    assert.equal(await page.locator("#stepVisualGuideImg").getAttribute("src"), null);
+
+    // 5. Step with broken HTTPS image shows brief error and keeps instructions visible
+    await page.locator("#btnStepModalNext").click();
+    await page.locator("#stepVisualGuideError:not(.d-none)").waitFor();
+    assert.match(await page.locator("#stepInstructions").innerText(), /Instruksi tetap tampil walau gambar gagal dimuat/);
+
+    // Moving back to step without image clears error and old image state
+    await page.locator("#btnStepModalPrev").click();
+    await page.locator("#btnStepModalPrev").click();
+    await page.locator("#btnStepModalPrev").click();
+    await page.locator("#btnStepModalPrev").click();
+    assert.equal(await page.locator("#stepVisualGuideSection").evaluate(el => el.classList.contains("d-none")), true);
+    assert.equal(await page.locator("#stepVisualGuideError").evaluate(el => el.classList.contains("d-none")), true);
+
+    // Check desktop layout with visible image has no horizontal overflow
+    await page.locator("#btnStepModalNext").click();
+    await page.locator("#stepVisualGuideSection:not(.d-none)").waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    await page.locator("#btnCloseStepModal").click();
+    await page.locator("#stepModalBackdrop").waitFor({ state: "hidden" });
+
+    // Sandboxed iframe without allow-modals: zoom modal works with zero blocked-dialog console warnings
+    await frame.locator("#packageImportFileInput").setInputFiles(visualFixturePath);
+    await frame.locator("#importPreviewModal.show").waitFor();
+    await frame.locator("#btnConfirmPackageImport").click();
+    await frame.locator("#importPreviewModal").waitFor({ state: "hidden" });
+    await frame.locator("#mainViewContainer").getByText("Visual Guide Setup", { exact: true }).click();
+    await frame.locator(".step-item-card").nth(1).click();
+    await frame.locator("#stepVisualGuideSection:not(.d-none)").waitFor();
+    await frame.locator("#btnZoomVisualGuide").click();
+    await frame.locator("#visualGuideZoomModal.show").waitFor();
+    await frame.locator("#btnCloseVisualGuideZoom").click();
+    await frame.locator("#visualGuideZoomModal").waitFor({ state: "hidden" });
     assert.deepEqual(sandboxDialogConsoleMessages, []);
     await sandboxPage.close();
-    pass("sandboxed iframe without allow-modals supports Bootstrap delete modal without blocked-dialog console errors");
+    pass("optional tutorial images (valid, null, unsafe, broken, zoom, step-switch cleanup, and sandboxed iframe)");
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "desktop-home.png"), fullPage: true });
@@ -266,7 +434,19 @@ async function waitForServer(url, timeoutMs = 10000) {
     assert.equal(modalFitsMobile, true);
     assert.equal(await page.locator("#btnBackToGuide").isVisible(), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "mobile-step-viewer.png"), fullPage: true });
-    pass("mobile step viewer fits viewport and exposes back navigation");
+    await page.locator("#btnCloseStepModal").click();
+    await page.locator("#stepModalBackdrop").waitFor({ state: "hidden" });
+    await page.getByText("Beranda", { exact: true }).click();
+    await page.locator("#packageLibrary").getByText("Visual Guide Test Package", { exact: true }).click();
+    await page.locator("#mainViewContainer").getByText("Visual Guide Setup", { exact: true }).click();
+    await page.locator(".step-item-card").nth(1).click();
+    await page.locator("#stepVisualGuideSection:not(.d-none)").waitFor();
+    const mobileImageFits = await page.locator("#stepVisualGuideImg").evaluate(img => {
+      const rect = img.getBoundingClientRect();
+      return rect.left >= 0 && rect.right <= window.innerWidth && document.documentElement.scrollWidth <= window.innerWidth;
+    });
+    assert.equal(mobileImageFits, true);
+    pass("mobile step viewer fits viewport with tutorial image and exposes back navigation");
 
     assert.deepEqual(pageErrors, []);
     pass("no uncaught browser page errors");
