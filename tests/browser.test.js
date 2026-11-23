@@ -162,14 +162,21 @@ async function waitForServer(url, timeoutMs = 10000) {
     assert.equal(await page.locator('[data-custom-package-id="meta-ads-scalev"]').count(), 0);
     const deleteRow = page.locator('[data-custom-package-id="package-legacy-import"]');
     await deleteRow.waitFor();
-    let deleteDialogMsg = "";
-    page.once("dialog", async dialog => {
-      deleteDialogMsg = dialog.message();
-      await dialog.accept();
-    });
-    await deleteRow.locator(".btn-delete-custom-package").click();
+    const deleteBtn = deleteRow.locator(".btn-delete-custom-package");
+    assert.equal(await deleteBtn.getAttribute("onclick"), null);
+
+    await deleteBtn.locator("i").click();
+    await page.locator("#deletePackageModal.show").waitFor();
+    assert.match(await page.locator("#deletePackageNameTarget").innerText(), /Legacy Import/);
+    await page.locator("#btnCancelDeletePackage").click();
+    await page.locator("#deletePackageModal").waitFor({ state: "hidden" });
+    assert.equal(await page.locator('[data-custom-package-id="package-legacy-import"]').count(), 1);
+
+    await deleteBtn.locator("i").click();
+    await page.locator("#deletePackageModal.show").waitFor();
+    await page.locator("#btnConfirmDeletePackage").click();
+    await page.locator("#deletePackageModal").waitFor({ state: "hidden" });
     await page.locator("#packageLibrary").waitFor();
-    assert.match(deleteDialogMsg, /Legacy Import/);
     assert.equal(await page.locator("#packageLibrary").getByText("Legacy Import").count(), 0);
     assert.equal(await page.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
     await page.reload({ waitUntil: "networkidle" });
@@ -183,7 +190,62 @@ async function waitForServer(url, timeoutMs = 10000) {
     assert.equal(await page.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
     await page.locator("#managementDrawer .btn-close").click();
     await page.locator("#managementDrawer").waitFor({ state: "hidden" });
-    pass("custom package import, delete confirmation, home redirect, Kelola removal, and reload persistence");
+    pass("custom package import, Bootstrap delete modal (Batal/Hapus Paket), home redirect, Kelola removal, and reload persistence");
+
+    const sandboxPage = await context.newPage();
+    const sandboxDialogConsoleMessages = [];
+    sandboxPage.on("pageerror", error => pageErrors.push(error.message));
+    sandboxPage.on("console", msg => {
+      const text = msg.text();
+      if (/allow-modals|Ignored call to '(confirm|alert|prompt)'|sandboxed/i.test(text)) {
+        sandboxDialogConsoleMessages.push(text);
+      }
+    });
+    await sandboxPage.goto(`${BASE_URL}/api/health`);
+    await sandboxPage.setContent(`
+      <!DOCTYPE html>
+      <html>
+        <body style="margin:0;">
+          <iframe id="appFrame" sandbox="allow-scripts allow-same-origin" src="${BASE_URL}/index.html" style="width:100vw;height:100vh;border:0;"></iframe>
+        </body>
+      </html>
+    `);
+    const frame = sandboxPage.frameLocator("#appFrame");
+    await frame.locator("#packageLibrary").getByText("Meta Ads + Scalev", { exact: true }).waitFor();
+    await frame.locator("#packageImportFileInput").setInputFiles(path.join(FIXTURES, "legacy-panduan.json"));
+    await frame.locator("#importPreviewModal.show").waitFor();
+    await frame.locator("#btnConfirmPackageImport").click();
+    await frame.locator("#importPreviewModal").waitFor({ state: "hidden" });
+    await frame.getByRole("heading", { name: "Legacy Import", exact: true }).waitFor();
+
+    await frame.locator("#btnManageData").click();
+    await frame.locator("#managementDrawer.show").waitFor();
+    const sandboxDeleteBtn = frame.locator('[data-custom-package-id="package-legacy-import"] .btn-delete-custom-package');
+    await sandboxDeleteBtn.locator("i").click();
+    await frame.locator("#deletePackageModal.show").waitFor();
+    assert.match(await frame.locator("#deletePackageNameTarget").innerText(), /Legacy Import/);
+    await frame.locator("#btnCancelDeletePackage").click();
+    await frame.locator("#deletePackageModal").waitFor({ state: "hidden" });
+    assert.equal(await frame.locator('[data-custom-package-id="package-legacy-import"]').count(), 1);
+
+    await sandboxDeleteBtn.locator("i").click();
+    await frame.locator("#deletePackageModal.show").waitFor();
+    await frame.locator("#btnConfirmDeletePackage").click();
+    await frame.locator("#deletePackageModal").waitFor({ state: "hidden" });
+    await frame.locator("#packageLibrary").waitFor();
+    assert.equal(await frame.locator("#packageLibrary").getByText("Legacy Import").count(), 0);
+
+    await sandboxPage.locator("#appFrame").evaluate(iframe => {
+      iframe.src = iframe.src;
+    });
+    await frame.locator("#packageLibrary").getByText("Meta Ads + Scalev", { exact: true }).waitFor();
+    assert.equal(await frame.locator("#packageLibrary").getByText("Legacy Import").count(), 0);
+    await frame.locator("#btnManageData").click();
+    await frame.locator("#managementDrawer.show").waitFor();
+    assert.equal(await frame.locator('[data-custom-package-id="package-legacy-import"]').count(), 0);
+    assert.deepEqual(sandboxDialogConsoleMessages, []);
+    await sandboxPage.close();
+    pass("sandboxed iframe without allow-modals supports Bootstrap delete modal without blocked-dialog console errors");
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.screenshot({ path: path.join(ARTIFACTS, "desktop-home.png"), fullPage: true });

@@ -1524,6 +1524,30 @@
     </div>
   </div>
 
+  <!-- DELETE PACKAGE CONFIRMATION -->
+  <div class="modal fade" id="deletePackageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-bottom">
+          <div>
+            <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash-can me-2"></i>Hapus Paket</h5>
+            <div class="text-muted" style="font-size:13px;">Konfirmasi penghapusan paket kustom.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Apakah Anda yakin ingin menghapus paket <strong id="deletePackageNameTarget"></strong>?</p>
+          <div class="text-muted" style="font-size:13px;">Panduan yang tidak lagi digunakan paket lain akan dihapus, sementara progres dan catatan Anda tetap dipertahankan.</div>
+          <div class="alert alert-danger py-2 mt-3 mb-0 d-none" id="deletePackageError" style="font-size:13px;"></div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" id="btnCancelDeletePackage" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDeletePackage">Hapus Paket</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- BOOTSTRAP JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -1553,6 +1577,7 @@
       customShortcuts: []
     };
     let pendingPackageImport = null;
+    let pendingPackageDeleteId = null;
 
     // Global Notes State
     let globalNotes = [];
@@ -2740,7 +2765,7 @@
             <div class="fw-semibold text-truncate" style="font-size:13px;">${escapeHtml(pkg.title)}</div>
             <div class="text-muted text-truncate" style="font-size:11.5px;">${escapeHtml(pkg.id)} · v${escapeHtml(pkg.version)}</div>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 btn-delete-custom-package" data-package-id="${escapeHtml(pkg.id)}" onclick="deleteCustomPackage(this.dataset.packageId)">
+          <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 btn-delete-custom-package" data-package-id="${escapeHtml(pkg.id)}">
             <i class="fas fa-trash-can me-1"></i>Hapus
           </button>
         </div>
@@ -2749,20 +2774,27 @@
 
     function deleteCustomPackage(packageId) {
       const pkg = appState.packages.find(item => item.id === packageId);
-      if (!pkg) return;
-      if (pkg.id === ALCO_MODEL.DEFAULT_PACKAGE_ID) {
-        alert("Paket bawaan tidak boleh dihapus.");
-        return;
-      }
-      if (!confirm(`Hapus paket "${pkg.title}"? Panduan yang tidak lagi dipakai paket lain akan dihapus, sementara progres dan catatan Anda tetap dipertahankan.`)) {
-        return;
-      }
+      if (!pkg || pkg.id === ALCO_MODEL.DEFAULT_PACKAGE_ID) return;
+
+      pendingPackageDeleteId = pkg.id;
+      document.getElementById("deletePackageNameTarget").textContent = pkg.title;
+      document.getElementById("deletePackageError").classList.add("d-none");
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("deletePackageModal")).show();
+    }
+
+    function confirmDeletePackage() {
+      const packageId = pendingPackageDeleteId;
+      if (!packageId) return;
+
+      const errorBox = document.getElementById("deletePackageError");
       try {
         const wasActivePackage = appState.activePackageId === packageId;
         appState.contentStore = ALCO_MODEL.deletePackage(appState.contentStore, packageId);
+        pendingPackageDeleteId = null;
         syncRuntimeState();
         saveData();
         renderCustomPackagesManager();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById("deletePackageModal")).hide();
 
         const activeGuideMissing = Boolean(appState.activeGuideId && !appState.guides.some(guide => guide.id === appState.activeGuideId));
         if (wasActivePackage || activeGuideMissing) {
@@ -2775,7 +2807,8 @@
           renderDashboard();
         }
       } catch (error) {
-        alert(`Hapus paket gagal: ${error.message}`);
+        errorBox.textContent = `Hapus paket gagal: ${error.message}`;
+        errorBox.classList.remove("d-none");
       }
     }
 
@@ -2968,6 +3001,18 @@
       checklistDrawerEl.addEventListener("show.bs.offcanvas", refreshChecklistDrawer);
       const managementDrawerEl = document.getElementById("managementDrawer");
       managementDrawerEl.addEventListener("show.bs.offcanvas", renderCustomPackagesManager);
+      const customPackagesListEl = document.getElementById("customPackagesManagementList");
+      customPackagesListEl.addEventListener("click", (event) => {
+        const button = event.target.closest(".btn-delete-custom-package");
+        if (!button || !customPackagesListEl.contains(button)) return;
+        const packageId = button.dataset.packageId;
+        if (packageId) deleteCustomPackage(packageId);
+      });
+      document.getElementById("btnConfirmDeletePackage").onclick = confirmDeletePackage;
+      document.getElementById("deletePackageModal").addEventListener("hidden.bs.modal", () => {
+        pendingPackageDeleteId = null;
+        document.getElementById("deletePackageError").classList.add("d-none");
+      });
     }
 
     // App Startup
