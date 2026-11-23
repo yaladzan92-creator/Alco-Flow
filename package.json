@@ -7,6 +7,7 @@
     "dev": "node server.js",
     "build": "echo 'Static build ready'",
     "start": "node server.js",
+    "lint": "node --check server.js && node --check data/model.js && node --check data/guides.js && node --check sw.js",
     "test": "node tests/model.test.js",
     "test:browser": "node tests/browser.test.js"
   },
