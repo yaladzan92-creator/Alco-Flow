@@ -448,6 +448,82 @@
     return next;
   }
 
+  function createPackageTemplate() {
+    const pkg = normalizePackage({
+      id: "template-paket-baru",
+      version: "1.0.0",
+      title: "Template Paket Panduan",
+      description: "Contoh paket berisi satu panduan, satu tahap, dan satu langkah lengkap. Ubah ID dan isi sesuai kebutuhan.",
+      badge: "Paket Kustom",
+      icon: "fas fa-box-open",
+      guideRefs: ["template-panduan-1"],
+      updatedAt: "2026-11-22T00:00:00.000Z"
+    }, 0);
+
+    const guide = normalizeGuide({
+      id: "template-panduan-1",
+      version: "1.0.0",
+      title: "Panduan Contoh Setup",
+      badge: "Setup Dasar",
+      badgeType: "primary",
+      icon: "fas fa-list-check",
+      shortDescription: "Deskripsi singkat tujuan panduan ini bagi pengguna.",
+      estimatedTotalTime: "5-10 menit",
+      stages: [
+        {
+          id: "template-tahap-1",
+          title: "Stage 1 — Persiapan Awal",
+          description: "Penjelasan singkat mengenai fokus pada tahap pertama.",
+          steps: [
+            {
+              id: "template-langkah-1",
+              title: "Contoh Langkah Setup Lengkap",
+              estimatedTime: "5 menit",
+              objective: "Menjelaskan tujuan teknis utama yang harus dicapai pada langkah ini.",
+              explanation: "Penjelasan ramah pemula mengenai mengapa langkah ini penting sebelum lanjut ke tahap berikutnya.",
+              instructions: [
+                "Buka dashboard tool terkait melalui tombol tautan di bawah.",
+                "Lengkapi pengaturan utama sesuai standar operasional Anda.",
+                "Simpan konfigurasi dan pastikan status berubah menjadi aktif."
+              ],
+              checklist: [
+                { id: "c1", text: "Akses ke dashboard tool berhasil dibuka" },
+                { id: "c2", text: "Pengaturan utama sudah diisi dan disimpan" }
+              ],
+              expectedResult: "Status pengaturan tampil aktif tanpa pesan error di dashboard.",
+              verification: {
+                id: "v1",
+                text: "Konfigurasi langkah ini sudah dipastikan benar dan aktif"
+              },
+              troubleshooting: [
+                {
+                  problem: "Menu pengaturan tidak muncul di dashboard?",
+                  solution: "Pastikan Anda login dengan akun yang memiliki hak akses Admin atau muat ulang halaman."
+                }
+              ],
+              externalLink: "https://example.com",
+              externalLinkLabel: "Buka Dashboard Tool",
+              aiContext: {
+                overview: "Ringkasan singkat fokus utama yang perlu diselesaikan pada langkah ini.",
+                missingMenuTip: "Periksa sidebar kiri dashboard atau buka langsung melalui tombol tautan eksternal.",
+                fieldExamples: "Contoh pengisian: gunakan nama brand resmi tanpa huruf kapital semua.",
+                errorSolutions: "Jika gagal menyimpan, periksa kembali izin akun dan koneksi internet Anda.",
+                verificationCheck: "Pastikan indikator status aktif terlihat sebelum menandai langkah selesai."
+              }
+            }
+          ]
+        }
+      ]
+    }, 0);
+
+    return {
+      type: "alco-flow-package",
+      schemaVersion: CONTENT_SCHEMA_VERSION,
+      package: pkg,
+      guides: [guide]
+    };
+  }
+
   function exportPackage(contentStore, packageId) {
     const pkg = contentStore?.packages?.find(item => item.id === packageId);
     if (!pkg) throw new Error("Package tidak ditemukan.");
@@ -544,6 +620,7 @@
     packageSummary,
     mergePackage,
     mergeProgress,
+    createPackageTemplate,
     exportPackage,
     createBackup,
     parseBackup,

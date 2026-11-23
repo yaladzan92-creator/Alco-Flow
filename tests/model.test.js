@@ -127,4 +127,36 @@ run("package export round-trips and backup restore keeps progress", () => {
   assert.equal(restored.customShortcuts.length, 1);
 });
 
+run("package template uses v2 schema with 1 package, 1 guide, 1 stage, 1 complete step and passes parsePackageImport", () => {
+  const base = model.createDefaultContentStore(defaultGuides);
+  const template = model.createPackageTemplate();
+  assert.equal(template.type, "alco-flow-package");
+  assert.equal(template.schemaVersion, 2);
+  assert.equal(template.guides.length, 1);
+  assert.deepEqual(template.package.guideRefs, [template.guides[0].id]);
+  assert.equal(template.guides[0].stages.length, 1);
+  assert.equal(template.guides[0].stages[0].steps.length, 1);
+
+  const step = template.guides[0].stages[0].steps[0];
+  assert.ok(step.id && step.title && step.estimatedTime);
+  assert.ok(step.objective && step.explanation && step.expectedResult);
+  assert.ok(Array.isArray(step.instructions) && step.instructions.length > 0);
+  assert.ok(Array.isArray(step.checklist) && step.checklist.length > 0);
+  assert.ok(step.verification && step.verification.id && step.verification.text);
+  assert.ok(Array.isArray(step.troubleshooting) && step.troubleshooting.length > 0);
+  assert.ok(step.externalLink && step.externalLinkLabel);
+  assert.ok(step.aiContext && step.aiContext.overview && step.aiContext.missingMenuTip && step.aiContext.fieldExamples && step.aiContext.errorSolutions && step.aiContext.verificationCheck);
+
+  const parsedJson = JSON.parse(JSON.stringify(template));
+  const candidate = model.parsePackageImport(parsedJson, "alco-flow-template-paket.json", base);
+  assert.equal(candidate.legacy, false);
+  assert.equal(candidate.warnings.length, 0);
+  assert.equal(model.validateContentStore(candidate.contentStore).valid, true);
+
+  const merged = model.mergePackage(base, candidate, "add");
+  assert.equal(merged.packages.length, base.packages.length + 1);
+  assert.equal(merged.guides.length, base.guides.length + 1);
+  assert.equal(model.validateContentStore(merged).valid, true);
+});
+
 console.log("All model tests passed.");

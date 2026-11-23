@@ -1475,7 +1475,16 @@
         <div class="text-muted mb-3" style="font-size:13px;">Tambahkan paket baru atau perbarui paket dengan ID yang sama. Paket lain dan progres pengguna tetap dipertahankan.</div>
         <div class="d-grid gap-2">
           <button type="button" class="btn btn-primary" id="btnImportPackage"><i class="fas fa-box-open me-2"></i>Import Paket</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnDownloadPackageTemplate"><i class="fas fa-file-code me-2"></i>Download Template Paket JSON</button>
           <button type="button" class="btn btn-outline-primary" id="btnExportActivePackage"><i class="fas fa-file-arrow-down me-2"></i>Export Paket Aktif</button>
+        </div>
+        <div class="alert alert-light border mt-3 mb-0 py-2 px-3" style="font-size:12px;">
+          <div class="fw-semibold mb-1"><i class="fas fa-circle-info text-primary me-1"></i>Cara Menggunakan Template</div>
+          <ol class="ps-3 mb-0">
+            <li>Klik <strong>Download Template Paket JSON</strong> untuk mengunduh contoh struktur lengkap.</li>
+            <li>Ubah <code>id</code> (huruf, angka, <code>-</code>/<code>_</code>), judul, tahapan, dan isi langkah sesuai kebutuhan Anda.</li>
+            <li>Simpan file <code>.json</code>, lalu klik <strong>Import Paket</strong> untuk mempreview dan menambahkannya.</li>
+          </ol>
         </div>
         <input type="file" id="packageImportFileInput" accept=".json,application/json" hidden>
       </div>
@@ -2708,6 +2717,11 @@
       downloadAnchor.remove();
     }
 
+    function downloadPackageTemplate() {
+      const template = ALCO_MODEL.createPackageTemplate();
+      downloadJsonFile(template, "alco-flow-template-paket.json");
+    }
+
     function exportActivePackage() {
       const packageId = appState.activePackageId || appState.packages[0]?.id;
       if (!packageId) return alert("Belum ada paket untuk diekspor.");
@@ -2874,6 +2888,7 @@
 
       // Package import/export and full backup/restore are intentionally separate.
       document.getElementById("btnExportData").onclick = exportAllData;
+      document.getElementById("btnDownloadPackageTemplate").onclick = downloadPackageTemplate;
       document.getElementById("btnExportActivePackage").onclick = exportActivePackage;
       document.getElementById("btnConfirmPackageImport").onclick = confirmPackageImport;
       const packageInput = document.getElementById("packageImportFileInput");
